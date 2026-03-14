@@ -9,15 +9,16 @@ import (
 type ZiweiEngine struct{}
 
 type ZiweiChart struct {
-	LifePalace  LifePalace
-	Palaces     map[basis.Palace]basis.Branch
-	Stars       map[basis.Palace][]basis.Star
-	Wuxing      basis.Wuxing
-	NaYin       basis.NaYin
-	YearPillar  basis.Pillar
-	MonthPillar basis.Pillar
-	DayPillar   basis.Pillar
-	HourPillar  basis.Pillar
+	LifePalace     LifePalace
+	Palaces        map[basis.Palace]basis.Branch
+	Stars          map[basis.Palace][]basis.Star
+	AssistantStars map[basis.Palace][]interface{}
+	Wuxing         basis.Wuxing
+	NaYin          basis.NaYin
+	YearPillar     basis.Pillar
+	MonthPillar    basis.Pillar
+	DayPillar      basis.Pillar
+	HourPillar     basis.Pillar
 }
 
 func New() *ZiweiEngine {
@@ -38,16 +39,19 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 
 	stars := PlaceMainStars(lifePalace.MingGong, wuxing, birth.LunarDay, monthPillar.Branch)
 
+	assistantStars := PlaceAssistantStars(lifePalace.MingGong, dayPillar.Stem, yearPillar.Stem)
+
 	return &ZiweiChart{
-		LifePalace:  lifePalace,
-		Palaces:     palaces,
-		Stars:       stars,
-		Wuxing:      wuxing,
-		NaYin:       naYin,
-		YearPillar:  yearPillar,
-		MonthPillar: monthPillar,
-		DayPillar:   dayPillar,
-		HourPillar:  birth.HourPillar,
+		LifePalace:     lifePalace,
+		Palaces:        palaces,
+		Stars:          stars,
+		AssistantStars: assistantStars,
+		Wuxing:         wuxing,
+		NaYin:          naYin,
+		YearPillar:     yearPillar,
+		MonthPillar:    monthPillar,
+		DayPillar:      dayPillar,
+		HourPillar:     birth.HourPillar,
 	}, nil
 }
 
@@ -66,9 +70,21 @@ func (c *ZiweiChart) String() string {
 		palace := basis.Palace(i)
 		branch := c.Palaces[palace]
 		stars := c.Stars[palace]
+		assistantStars := c.AssistantStars[palace]
+
 		starStr := ""
 		for _, s := range stars {
 			starStr += s.String() + " "
+		}
+		for _, as := range assistantStars {
+			switch v := as.(type) {
+			case basis.AuspiciousStar:
+				starStr += v.String() + " "
+			case basis.MaleficStar:
+				starStr += v.String() + " "
+			case basis.LuCunStar:
+				starStr += v.String() + " "
+			}
 		}
 		if starStr == "" {
 			starStr = "(空宮)"
