@@ -15,6 +15,8 @@ type ZiweiChart struct {
 	AssistantStars   map[basis.Palace][]interface{}
 	SecondaryStars   map[basis.Palace][]interface{}
 	TransformedStars map[basis.Palace][]interface{}
+	DaYun            []basis.DaYun
+	LiuNian          []basis.LiuNian
 	Wuxing           basis.Wuxing
 	NaYin            basis.NaYin
 	YearPillar       basis.Pillar
@@ -47,6 +49,10 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 
 	transformedStars := PlaceTransformationStars(lifePalace.MingGong, yearPillar.Stem, stars, palaces)
 
+	dayuns := CalcDaYun(lifePalace.MingGong, birth.Sex, yearPillar.Stem, birth.LunarYear)
+
+	liunians := CalcLiuNian(lifePalace.MingGong, dayPillar.Stem, birth.LunarYear)
+
 	return &ZiweiChart{
 		LifePalace:       lifePalace,
 		Palaces:          palaces,
@@ -54,6 +60,8 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 		AssistantStars:   assistantStars,
 		SecondaryStars:   secondaryStars,
 		TransformedStars: transformedStars,
+		DaYun:            dayuns,
+		LiuNian:          liunians,
 		Wuxing:           wuxing,
 		NaYin:            naYin,
 		YearPillar:       yearPillar,
@@ -113,5 +121,16 @@ func (c *ZiweiChart) String() string {
 		}
 		str += fmt.Sprintf("  %s(%s): %s\n", palace, branch, starStr)
 	}
+
+	str += "\n大運:\n"
+	for _, dy := range c.DaYun {
+		str += fmt.Sprintf("  第%d運(%d-%d歲): %s%s\n", dy.Index, dy.StartAge, dy.EndAge, dy.Stem, dy.Branch)
+	}
+
+	str += "\n流年:\n"
+	for _, ln := range c.LiuNian {
+		str += fmt.Sprintf("  %d年: %s%s\n", ln.Year, ln.Stem, ln.Branch)
+	}
+
 	return str
 }
