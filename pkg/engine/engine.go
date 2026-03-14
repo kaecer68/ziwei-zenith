@@ -1,0 +1,67 @@
+package engine
+
+import (
+	"fmt"
+
+	"github.com/kaecer68/ziwei-zenith/pkg/basis"
+)
+
+type ZiweiEngine struct{}
+
+type ZiweiChart struct {
+	LifePalace LifePalace
+	Palaces    map[basis.Palace]basis.Branch
+	Stars      map[basis.Palace][]basis.Star
+	Wuxing     basis.Wuxing
+	NaYin      basis.NaYin
+}
+
+func New() *ZiweiEngine {
+	return &ZiweiEngine{}
+}
+
+func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
+	yearPillar := birth.YearPillar
+	monthPillar := birth.MonthPillar
+	dayPillar := birth.DayPillar
+
+	lifePalace := CalcLifePalace(birth.LunarMonth, birth.LunarDay, basis.Branch(birth.HourBranch))
+
+	wuxing := CalcWuxingJu(yearPillar.Stem, basis.Branch(lifePalace.MingGong))
+	naYin := basis.CalcNaYin(dayPillar.Stem, dayPillar.Branch)
+
+	palaces := BuildPalaces(lifePalace.MingGong)
+
+	stars := PlaceMainStars(lifePalace.MingGong, wuxing, birth.LunarDay, monthPillar.Branch)
+
+	return &ZiweiChart{
+		LifePalace: lifePalace,
+		Palaces:    palaces,
+		Stars:      stars,
+		Wuxing:     wuxing,
+		NaYin:      naYin,
+	}, nil
+}
+
+func (c *ZiweiChart) String() string {
+	str := "紫微斗數命盤\n"
+	str += fmt.Sprintf("五行局: %s\n", c.Wuxing)
+	str += fmt.Sprintf("納音: %s\n", c.NaYin)
+	str += fmt.Sprintf("命宮: %s\n", c.LifePalace.MingGong)
+	str += fmt.Sprintf("身宮: %s\n", c.LifePalace.ShenGong)
+	str += "\n宮位分布:\n"
+	for i := 0; i < 12; i++ {
+		palace := basis.Palace(i)
+		branch := c.Palaces[palace]
+		stars := c.Stars[palace]
+		starStr := ""
+		for _, s := range stars {
+			starStr += s.String() + " "
+		}
+		if starStr == "" {
+			starStr = "(空宮)"
+		}
+		str += fmt.Sprintf("  %s(%s): %s\n", palace, branch, starStr)
+	}
+	return str
+}
