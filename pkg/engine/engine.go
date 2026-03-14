@@ -9,11 +9,15 @@ import (
 type ZiweiEngine struct{}
 
 type ZiweiChart struct {
-	LifePalace LifePalace
-	Palaces    map[basis.Palace]basis.Branch
-	Stars      map[basis.Palace][]basis.Star
-	Wuxing     basis.Wuxing
-	NaYin      basis.NaYin
+	LifePalace  LifePalace
+	Palaces     map[basis.Palace]basis.Branch
+	Stars       map[basis.Palace][]basis.Star
+	Wuxing      basis.Wuxing
+	NaYin       basis.NaYin
+	YearPillar  basis.Pillar
+	MonthPillar basis.Pillar
+	DayPillar   basis.Pillar
+	HourPillar  basis.Pillar
 }
 
 func New() *ZiweiEngine {
@@ -35,16 +39,24 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 	stars := PlaceMainStars(lifePalace.MingGong, wuxing, birth.LunarDay, monthPillar.Branch)
 
 	return &ZiweiChart{
-		LifePalace: lifePalace,
-		Palaces:    palaces,
-		Stars:      stars,
-		Wuxing:     wuxing,
-		NaYin:      naYin,
+		LifePalace:  lifePalace,
+		Palaces:     palaces,
+		Stars:       stars,
+		Wuxing:      wuxing,
+		NaYin:       naYin,
+		YearPillar:  yearPillar,
+		MonthPillar: monthPillar,
+		DayPillar:   dayPillar,
+		HourPillar:  birth.HourPillar,
 	}, nil
 }
 
 func (c *ZiweiChart) String() string {
 	str := "紫微斗數命盤\n"
+	str += fmt.Sprintf("年柱: %s\n", c.YearPillar)
+	str += fmt.Sprintf("月柱: %s\n", c.MonthPillar)
+	str += fmt.Sprintf("日柱: %s\n", c.DayPillar)
+	str += fmt.Sprintf("時柱: %s\n", c.HourPillar)
 	str += fmt.Sprintf("五行局: %s\n", c.Wuxing)
 	str += fmt.Sprintf("納音: %s\n", c.NaYin)
 	str += fmt.Sprintf("命宮: %s\n", c.LifePalace.MingGong)

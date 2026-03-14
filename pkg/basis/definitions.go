@@ -108,6 +108,10 @@ type Pillar struct {
 	Branch Branch
 }
 
+func (p Pillar) String() string {
+	return p.Stem.String() + p.Branch.String()
+}
+
 // Sex represents gender for fortune calculation
 type Sex int
 

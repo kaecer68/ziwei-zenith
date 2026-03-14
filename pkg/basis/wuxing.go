@@ -1,5 +1,7 @@
 package basis
 
+import "fmt"
+
 type Wuxing int
 
 const (
@@ -123,7 +125,7 @@ func (n NaYin) Element() Element {
 }
 
 func CalcNaYin(stem Stem, branch Branch) NaYin {
-	return NaYin(int(stem)*12 + int(branch))
+	return NaYin((int(stem)*12 + int(branch)) % 60)
 }
 
 func (n NaYin) String() string {
@@ -133,6 +135,9 @@ func (n NaYin) String() string {
 		"甲申", "乙酉", "丙戌", "丁亥", "戊子", "己丑", "庚寅", "辛卯", "壬辰", "癸巳",
 		"甲午", "乙未", "丙申", "丁酉", "戊戌", "己亥", "庚子", "辛丑", "壬寅", "癸卯",
 		"甲辰", "乙巳", "丙午", "丁未", "戊申", "己酉", "庚戌", "辛亥", "壬子", "癸丑",
+	}
+	if int(n) >= len(names) {
+		return fmt.Sprintf("NA(%d)", n)
 	}
 	return names[n]
 }
