@@ -19,6 +19,7 @@ type ZiweiChart struct {
 	LiuNian          []basis.LiuNian
 	LiuYue           []basis.LiuYue
 	LiuRi            []basis.LiuRi
+	Patterns         []Pattern
 	Wuxing           basis.Wuxing
 	NaYin            basis.NaYin
 	YearPillar       basis.Pillar
@@ -59,6 +60,8 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 
 	liuris := CalcLiuRi(lifePalace.MingGong, dayPillar.Stem, birth.LunarDay)
 
+	patterns := DetectPatterns(stars, palaces, assistantStars)
+
 	return &ZiweiChart{
 		LifePalace:       lifePalace,
 		Palaces:          palaces,
@@ -70,6 +73,7 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 		LiuNian:          liunians,
 		LiuYue:           liuyues,
 		LiuRi:            liuris,
+		Patterns:         patterns,
 		Wuxing:           wuxing,
 		NaYin:            naYin,
 		YearPillar:       yearPillar,
@@ -89,6 +93,14 @@ func (c *ZiweiChart) String() string {
 	str += fmt.Sprintf("納音: %s\n", c.NaYin)
 	str += fmt.Sprintf("命宮: %s\n", c.LifePalace.MingGong)
 	str += fmt.Sprintf("身宮: %s\n", c.LifePalace.ShenGong)
+
+	if len(c.Patterns) > 0 {
+		str += "\n格局:\n"
+		for _, p := range c.Patterns {
+			str += fmt.Sprintf("  [%s] %s — %s\n", p.Level, p.Name, p.Description)
+		}
+	}
+
 	str += "\n宮位分布:\n"
 	for i := 0; i < 12; i++ {
 		palace := basis.Palace(i)
