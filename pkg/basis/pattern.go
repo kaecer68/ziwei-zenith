@@ -27,4 +27,9 @@ var Patterns = []Pattern{
 	{Name: "水木清華", Description: "天機與太陰同宮或對宮", Level: "乙"},
 	{Name: "土金相生", Description: "天府與武曲同宮或相生", Level: "丙"},
 	{Name: "日月並明", Description: "太陽在午宮，太陰在丑宮或未宮", Level: "乙"},
+	{Name: "極向離明", Description: "紫微星在午宮坐命，無煞曜，主大富大貴", Level: "甲"},
+	{Name: "石中隱玉", Description: "巨門在子或午宮坐命，有化祿或化權，主中晚年大發", Level: "甲"},
+	{Name: "文桂文華", Description: "文昌文曲在命宮或三方四正，主才華橫溢", Level: "乙"},
+	{Name: "天府守垣", Description: "天府星在戌宮坐命，主大富", Level: "甲"},
+	{Name: "壽星入廟", Description: "天梁星在午宮坐命，主長壽且有地位", Level: "甲"},
 }
