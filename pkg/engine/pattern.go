@@ -147,5 +147,50 @@ func DetectPatterns(chart *ZiweiChart) []basis.Pattern {
 		result = append(result, basis.Pattern{Name: "天機巨門在卯酉", Description: "機巨同臨，位至三公；雖富貴，不免酒色", Level: "乙"})
 	}
 
+	hasMaleficInSFZ := func() bool {
+		malefics := []string{"擎羊", "陀羅", "火星", "鈴星", "地空", "地劫"}
+		for _, m := range malefics {
+			if hasInSFZ(m) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// 14. 極向離明 (Zi Wei in Wu)
+	if hasStar(target, "紫微") && branchOfPalace[target] == basis.BranchWu && !hasMaleficInSFZ() {
+		result = append(result, basis.Patterns[17]) // 極向離明
+	}
+
+	// 15. 石中隱玉 (Ju Men in Zi/Wu)
+	if hasStar(target, "巨門") && (branchOfPalace[target] == basis.BranchZi || branchOfPalace[target] == basis.BranchWu) {
+		hasHuaLuOrQuan := false
+		b := branchOfPalace[target]
+		for _, s := range chart.TransformedStars[b] {
+			if ts, ok := s.(basis.TransformedStar); ok && (ts.Transformation == basis.TransLu || ts.Transformation == basis.TransQuan) {
+				hasHuaLuOrQuan = true
+				break
+			}
+		}
+		if hasHuaLuOrQuan {
+			result = append(result, basis.Patterns[18]) // 石中隱玉
+		}
+	}
+
+	// 16. 文桂文華 (Chang/Qu in SFZ)
+	if hasInSFZ("文昌") && hasInSFZ("文曲") {
+		result = append(result, basis.Patterns[19]) // 文桂文華
+	}
+
+	// 17. 天府守垣 (Tian Fu in Xu)
+	if hasStar(target, "天府") && branchOfPalace[target] == basis.BranchXu {
+		result = append(result, basis.Patterns[20]) // 天府守垣
+	}
+
+	// 18. 壽星入廟 (Tian Liang in Wu)
+	if hasStar(target, "天梁") && branchOfPalace[target] == basis.BranchWu {
+		result = append(result, basis.Patterns[21]) // 壽星入廟
+	}
+
 	return result
 }

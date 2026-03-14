@@ -103,6 +103,51 @@ func PlaceSecondaryStars(yearBranch basis.Branch, lunarMonth int, lunarDay int, 
 	stars[basis.Branch((9+lunarMonth-1)%12)] = append(stars[basis.Branch((9+lunarMonth-1)%12)], basis.SecondaryTianxing)
 	stars[basis.Branch((1+lunarMonth-1)%12)] = append(stars[basis.Branch((1+lunarMonth-1)%12)], basis.SecondaryTianyao)
 
+	// 9. Guchen & Guaxu (Year Branch)
+	guchenTable := map[basis.Branch]int{
+		11: 2, 0: 2, 1: 2, // Hai, Zi, Chou -> Yin(2)
+		2: 5, 3: 5, 4: 5, // Yin, Mao, Chen -> Si(5)
+		5: 8, 6: 8, 7: 8, // Si, Wu, Wei -> Shen(8)
+		8: 11, 9: 11, 10: 11, // Shen, You, Xu -> Hai(11)
+	}
+	guaxuTable := map[basis.Branch]int{
+		11: 10, 0: 10, 1: 10, // Hai, Zi, Chou -> Xu(10)
+		2: 1, 3: 1, 4: 1, // Yin, Mao, Chen -> Chou(1)
+		5: 4, 6: 4, 7: 4, // Si, Wu, Wei -> Chen(4)
+		8: 7, 9: 7, 10: 7, // Shen, You, Xu -> Wei(7)
+	}
+	stars[basis.Branch(guchenTable[yearBranch])] = append(stars[basis.Branch(guchenTable[yearBranch])], basis.SecondaryGuchen)
+	stars[basis.Branch(guaxuTable[yearBranch])] = append(stars[basis.Branch(guaxuTable[yearBranch])], basis.SecondaryGuaxu)
+
+	// 10. Santai & Bazuo (Based on Zuofu/Youbi + Day)
+	zuofuIdx := (4 + lunarMonth - 1) % 12
+	youbiIdx := (10 - (lunarMonth - 1) + 12) % 12
+	santaiIdx := (zuofuIdx + (lunarDay - 1)) % 12
+	bazuoIdx := (youbiIdx - (lunarDay - 1) + 120) % 12
+	stars[basis.Branch(santaiIdx)] = append(stars[basis.Branch(santaiIdx)], basis.SecondarySantai)
+	stars[basis.Branch(bazuoIdx)] = append(stars[basis.Branch(bazuoIdx)], basis.SecondaryBazuo)
+
+	// 11. Xianchi (Year Branch)
+	xianchiTable := map[basis.Branch]int{
+		8: 9, 0: 9, 4: 9, // Shen-Zi-Chen -> You(9)
+		2: 3, 6: 3, 10: 3, // Yin-Wu-Xu -> Mao(3)
+		5: 6, 9: 6, 1: 6, // Si-You-Chou -> Wu(6)
+		11: 0, 3: 0, 7: 0, // Hai-Mao-Wei -> Zi(0)
+	}
+	stars[basis.Branch(xianchiTable[yearBranch])] = append(stars[basis.Branch(xianchiTable[yearBranch])], basis.SecondaryXianchi)
+
+	// 12. Tianyue (Month)
+	tianyueTable := map[int]int{1: 10, 2: 5, 3: 4, 4: 5, 5: 7, 6: 8, 7: 10, 8: 1, 9: 11, 10: 11, 11: 3, 12: 6}
+	stars[basis.Branch(tianyueTable[lunarMonth])] = append(stars[basis.Branch(tianyueTable[lunarMonth])], basis.SecondaryTianyue)
+
+	// 13. Yinsha (Month)
+	yinshaTable := map[int]int{1: 2, 2: 0, 3: 10, 4: 8, 5: 6, 6: 4, 7: 2, 8: 0, 9: 10, 10: 8, 11: 6, 12: 4}
+	stars[basis.Branch(yinshaTable[lunarMonth])] = append(stars[basis.Branch(yinshaTable[lunarMonth])], basis.SecondaryYinsha)
+
+	// 14. Taifu & Fenggao (Hour)
+	stars[basis.Branch((6+int(hourBranch))%12)] = append(stars[basis.Branch((6+int(hourBranch))%12)], basis.SecondaryTianning)
+	stars[basis.Branch((2+int(hourBranch))%12)] = append(stars[basis.Branch((2+int(hourBranch))%12)], basis.SecondaryFenggao)
+
 	return stars
 }
 
