@@ -118,3 +118,58 @@ func PlaceSecondaryStars(mingGong basis.Palace, yearBranch basis.Branch, dayBran
 
 	return secondaryStars
 }
+
+func PlaceTransformationStars(mingGong basis.Palace, yearStem basis.Stem, mainStars map[basis.Palace][]basis.Star, palaces map[basis.Palace]basis.Branch) map[basis.Palace][]interface{} {
+	transformedStars := make(map[basis.Palace][]interface{})
+
+	transBranches, ok := basis.TransformationTable[yearStem]
+	if !ok {
+		return transformedStars
+	}
+
+	luBranch := transBranches[0]
+	quanBranch := transBranches[1]
+	keBranch := transBranches[2]
+	jiBranch := transBranches[3]
+
+	luPalace := basis.Palace(0)
+	quanPalace := basis.Palace(0)
+	kePalace := basis.Palace(0)
+	jiPalace := basis.Palace(0)
+
+	for p, b := range palaces {
+		if b == luBranch {
+			luPalace = p
+		}
+		if b == quanBranch {
+			quanPalace = p
+		}
+		if b == keBranch {
+			kePalace = p
+		}
+		if b == jiBranch {
+			jiPalace = p
+		}
+	}
+
+	for palace, stars := range mainStars {
+		for _, star := range stars {
+			if palace == luPalace {
+				transformedStars[palace] = append(transformedStars[palace], basis.TransformedStar{Star: star, Transformation: basis.TransformationLu})
+			}
+			if palace == quanPalace {
+				transformedStars[palace] = append(transformedStars[palace], basis.TransformedStar{Star: star, Transformation: basis.TransformationQuan})
+			}
+			if palace == kePalace {
+				transformedStars[palace] = append(transformedStars[palace], basis.TransformedStar{Star: star, Transformation: basis.TransformationKe})
+			}
+			if palace == jiPalace {
+				transformedStars[palace] = append(transformedStars[palace], basis.TransformedStar{Star: star, Transformation: basis.TransformationJi})
+			}
+		}
+	}
+
+	_ = mingGong
+
+	return transformedStars
+}
