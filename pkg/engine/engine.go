@@ -17,6 +17,8 @@ type ZiweiChart struct {
 	TransformedStars map[basis.Palace][]interface{}
 	DaYun            []basis.DaYun
 	LiuNian          []basis.LiuNian
+	LiuYue           []basis.LiuYue
+	LiuRi            []basis.LiuRi
 	Wuxing           basis.Wuxing
 	NaYin            basis.NaYin
 	YearPillar       basis.Pillar
@@ -53,6 +55,10 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 
 	liunians := CalcLiuNian(lifePalace.MingGong, dayPillar.Stem, birth.LunarYear)
 
+	liuyues := CalcLiuYue(lifePalace.MingGong, yearPillar.Branch, birth.LunarMonth)
+
+	liuris := CalcLiuRi(lifePalace.MingGong, dayPillar.Stem, birth.LunarDay)
+
 	return &ZiweiChart{
 		LifePalace:       lifePalace,
 		Palaces:          palaces,
@@ -62,6 +68,8 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 		TransformedStars: transformedStars,
 		DaYun:            dayuns,
 		LiuNian:          liunians,
+		LiuYue:           liuyues,
+		LiuRi:            liuris,
 		Wuxing:           wuxing,
 		NaYin:            naYin,
 		YearPillar:       yearPillar,
@@ -132,5 +140,26 @@ func (c *ZiweiChart) String() string {
 		str += fmt.Sprintf("  %d年: %s%s\n", ln.Year, ln.Stem, ln.Branch)
 	}
 
+	str += "\n流月:\n"
+	for _, ly := range c.LiuYue {
+		str += fmt.Sprintf("  %d月: %s%s\n", ly.Month, ly.Stem, ly.Branch)
+	}
+
+	str += "\n流日:\n"
+	for i := 0; i < min(15, len(c.LiuRi)); i++ {
+		lr := c.LiuRi[i]
+		str += fmt.Sprintf("  %d日: %s%s\n", lr.Day, lr.Stem, lr.Branch)
+	}
+	if len(c.LiuRi) > 15 {
+		str += fmt.Sprintf("  ... (共%d日)\n", len(c.LiuRi))
+	}
+
 	return str
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
