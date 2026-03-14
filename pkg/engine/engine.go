@@ -13,6 +13,7 @@ type ZiweiChart struct {
 	Palaces        map[basis.Palace]basis.Branch
 	Stars          map[basis.Palace][]basis.Star
 	AssistantStars map[basis.Palace][]interface{}
+	SecondaryStars map[basis.Palace][]interface{}
 	Wuxing         basis.Wuxing
 	NaYin          basis.NaYin
 	YearPillar     basis.Pillar
@@ -41,11 +42,14 @@ func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
 
 	assistantStars := PlaceAssistantStars(lifePalace.MingGong, dayPillar.Stem, yearPillar.Stem)
 
+	secondaryStars := PlaceSecondaryStars(lifePalace.MingGong, yearPillar.Branch, dayPillar.Branch)
+
 	return &ZiweiChart{
 		LifePalace:     lifePalace,
 		Palaces:        palaces,
 		Stars:          stars,
 		AssistantStars: assistantStars,
+		SecondaryStars: secondaryStars,
 		Wuxing:         wuxing,
 		NaYin:          naYin,
 		YearPillar:     yearPillar,
@@ -71,6 +75,7 @@ func (c *ZiweiChart) String() string {
 		branch := c.Palaces[palace]
 		stars := c.Stars[palace]
 		assistantStars := c.AssistantStars[palace]
+		secondaryStars := c.SecondaryStars[palace]
 
 		starStr := ""
 		for _, s := range stars {
@@ -83,6 +88,12 @@ func (c *ZiweiChart) String() string {
 			case basis.MaleficStar:
 				starStr += v.String() + " "
 			case basis.LuCunStar:
+				starStr += v.String() + " "
+			}
+		}
+		for _, ss := range secondaryStars {
+			switch v := ss.(type) {
+			case basis.SecondaryStar:
 				starStr += v.String() + " "
 			}
 		}
