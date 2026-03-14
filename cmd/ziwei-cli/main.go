@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"math"
 	"os"
 	"time"
 
+	"github.com/kaecer68/lunar-zenith/pkg/celestial"
 	"github.com/kaecer68/lunar-zenith/pkg/zodiac"
 	"github.com/kaecer68/ziwei-zenith/pkg/api/v1"
 	"github.com/kaecer68/ziwei-zenith/pkg/basis"
@@ -22,19 +22,21 @@ var (
 	minute    int
 	gender    string
 	jsonFlag  bool
+	isLunar   bool
 	latitude  float64
 	longitude float64
 )
 
 func init() {
-	flag.IntVar(&year, "year", 0, "Solar year (e.g., 1990)")
-	flag.IntVar(&month, "month", 0, "Solar month (1-12)")
-	flag.IntVar(&day, "day", 0, "Solar day (1-31)")
-	flag.IntVar(&hour, "hour", 0, "Hour (0-23)")
-	flag.IntVar(&minute, "minute", 0, "Minute (0-59)")
+	flag.IntVar(&year, "year", 0, "Year")
+	flag.IntVar(&month, "month", 0, "Month")
+	flag.IntVar(&day, "day", 0, "Day")
+	flag.IntVar(&hour, "hour", 0, "Hour")
+	flag.IntVar(&minute, "minute", 0, "Minute")
 	flag.StringVar(&gender, "gender", "male", "Gender (male/female)")
-	flag.Float64Var(&latitude, "lat", 25.033, "Latitude (default: 25.033 - Taipei)")
-	flag.Float64Var(&longitude, "lon", 121.565, "Longitude (default: 121.565 - Taipei)")
+	flag.BoolVar(&isLunar, "lunar", false, "Use lunar date input directly")
+	flag.Float64Var(&latitude, "lat", 25.033, "Latitude")
+	flag.Float64Var(&longitude, "lon", 121.565, "Longitude")
 	flag.BoolVar(&jsonFlag, "json", false, "Output JSON format")
 }
 
@@ -55,46 +57,47 @@ func main() {
 		sex = basis.SexFemale
 	}
 
-	yearSexagenary := zodiac.NewYearSexagenary(year)
+	var lYear, lMonth, lDay int
+	var yPillar, mPillar, dPillar basis.Pillar
 
-	monthSexagenary := zodiac.GetMonthSexagenary(yearSexagenary.StemIndex, int(month))
+	pt := celestial.NewPrecisionTime(solarTime)
+	pillar := zodiac.GetAstrologicalPillar(pt)
 
-	jd := julianDay(solarTime)
-	daySexagenary := zodiac.GetDaySexagenary(jd)
+	yPillar = basis.Pillar{Stem: basis.Stem(pillar.Year.StemIndex), Branch: basis.Branch(pillar.Year.BranchIndex)}
+	mPillar = basis.Pillar{Stem: basis.Stem(pillar.Month.StemIndex), Branch: basis.Branch(pillar.Month.BranchIndex)}
+	dPillar = basis.Pillar{Stem: basis.Stem(pillar.Day.StemIndex), Branch: basis.Branch(pillar.Day.BranchIndex)}
+
+	if isLunar {
+		lYear = year
+		lMonth = month
+		lDay = day
+	} else {
+		jd := celestial.TimeToJD(solarTime)
+		engine_lunar := &zodiac.LunarEngine{}
+		lunarDate := engine_lunar.GetLunarDate(jd)
+
+		lYear = lunarDate.Year
+		lMonth = lunarDate.Month
+		lDay = lunarDate.Day
+	}
 
 	hourBranchIdx := zodiac.GetHourBranch(hour)
-	hourSexagenary := zodiac.GetHourSexagenary(daySexagenary.StemIndex, hourBranchIdx)
+	hourSexagenary := zodiac.GetHourSexagenary(int(dPillar.Stem), hourBranchIdx)
 
-	lunarMonth := calcLunarMonth(year, month, day, jd)
-	lunarDay := calcLunarDay(jd)
-
-	yearPillar := basis.Pillar{
-		Stem:   basis.Stem(yearSexagenary.StemIndex),
-		Branch: basis.Branch(yearSexagenary.BranchIndex),
-	}
-	monthPillar := basis.Pillar{
-		Stem:   basis.Stem(monthSexagenary.StemIndex),
-		Branch: basis.Branch(monthSexagenary.BranchIndex),
-	}
-	dayPillar := basis.Pillar{
-		Stem:   basis.Stem(daySexagenary.StemIndex),
-		Branch: basis.Branch(daySexagenary.BranchIndex),
-	}
-	hourPillar := basis.Pillar{
-		Stem:   basis.Stem(hourSexagenary.StemIndex),
-		Branch: basis.Branch(hourSexagenary.BranchIndex),
-	}
-
-	birth := engine.BirthInfo{
-		LunarYear:   lunarMonth,
-		LunarMonth:  int(math.Abs(float64(lunarMonth))),
-		LunarDay:    lunarDay,
-		HourBranch:  basis.HourBranch(hourBranchIdx),
-		YearPillar:  yearPillar,
-		MonthPillar: monthPillar,
-		DayPillar:   dayPillar,
-		HourPillar:  hourPillar,
+	birth := basis.BirthInfo{
+		SolarYear:   year,
+		SolarMonth:  month,
+		SolarDay:    day,
+		Hour:        hour,
 		Sex:         sex,
+		LunarYear:   lYear,
+		LunarMonth:  lMonth,
+		LunarDay:    lDay,
+		HourBranch:  basis.HourBranch(hourBranchIdx),
+		YearPillar:  yPillar,
+		MonthPillar: mPillar,
+		DayPillar:   dPillar,
+		HourPillar:  basis.Pillar{Stem: basis.Stem(hourSexagenary.StemIndex), Branch: basis.Branch(hourSexagenary.BranchIndex)},
 	}
 
 	e := engine.New()
@@ -104,146 +107,113 @@ func main() {
 		os.Exit(1)
 	}
 
-	chart.YearPillar = yearPillar
-	chart.MonthPillar = monthPillar
-	chart.DayPillar = dayPillar
-	chart.HourPillar = hourPillar
-
 	if jsonFlag {
-		outputJSON(chart)
+		outputJSON(chart, gender)
 	} else {
 		fmt.Print(chart.String())
 	}
 }
 
-func julianDay(t time.Time) float64 {
-	y := t.Year()
-	m := t.Month()
-	d := float64(t.Day())
-	h := float64(t.Hour()) + float64(t.Minute())/60.0
-
-	if m <= 2 {
-		y -= 1
-		m += 12
-	}
-
-	a := math.Floor(float64(y) / 100)
-	b := 2 - a + math.Floor(a/4)
-
-	return math.Floor(365.25*float64(y+4716)) + math.Floor(30.6001*float64(m+1)) + d + h/24.0 + b - 1524.5
-}
-
-func calcLunarMonth(year, month, day int, jd float64) int {
-	newMoonJD := findPreviousNewMoon(jd)
-	refDate := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
-	refJD := julianDay(refDate)
-
-	months := int((refJD - newMoonJD) / 29.53)
-	return (months % 12) + 1
-}
-
-func findPreviousNewMoon(jd float64) float64 {
-	low := jd - 30
-	high := jd
-
-	for i := 0; i < 20; i++ {
-		mid := (low + high) / 2
-		phase := moonPhase(mid)
-		if phase > 180 {
-			phase -= 360
-		}
-		if math.Abs(high-low) < 0.01 {
-			return mid
-		}
-		if phase < 0 {
-			low = mid
-		} else {
-			high = mid
-		}
-	}
-	return (low + high) / 2
-}
-
-func moonPhase(jde float64) float64 {
-	t := (jde - 2451545.0) / 36525.0
-
-	lPrime := 218.3164477 + 481267.88123421*t
-	mPrime := 134.9633964 + 477198.8675055*t
-	m := 357.5291092 + 35999.0502909*t
-	f := 93.2720950 + 483202.0175233*t
-	d := 297.8501921 + 445267.1114034*t
-
-	lPrime = math.Mod(lPrime, 360.0)
-	if lPrime < 0 {
-		lPrime += 360.0
-	}
-
-	deg2Rad := math.Pi / 180.0
-	lambda := lPrime +
-		6.288774*math.Sin(mPrime*deg2Rad) +
-		1.274027*math.Sin((2*d-mPrime)*deg2Rad) +
-		0.658314*math.Sin(2*d*deg2Rad) +
-		0.213118*math.Sin(2*mPrime*deg2Rad) -
-		0.185116*math.Sin(m*deg2Rad) -
-		0.114332*math.Sin(2*f*deg2Rad)
-
-	sLon := solarLongitude(jde)
-	mLon := math.Mod(lambda+360.0, 360.0)
-	diff := mLon - sLon
-	return math.Mod(diff+360.0, 360.0)
-}
-
-func solarLongitude(jde float64) float64 {
-	t := (jde - 2451545.0) / 36525.0
-	l0 := 280.46646 + 36000.76983*t + 0.0003032*t*t
-	return math.Mod(l0, 360.0)
-}
-
-func calcLunarDay(jd float64) int {
-	phase := moonPhase(jd)
-	day := int((phase / 12.0)) + 1
-	if day > 30 {
-		day = 30
-	}
-	return day
-}
-
-func outputJSON(chart *engine.ZiweiChart) {
+func outputJSON(chart *engine.ZiweiChart, gender string) {
 	palaces := make(map[string]v1.PalaceData)
 	for i := 0; i < 12; i++ {
-		palace := basis.Palace(i)
-		branch := chart.Palaces[palace]
-		stars := chart.Stars[palace]
-		starNames := make([]string, len(stars))
-		for j, s := range stars {
-			starNames[j] = s.String()
+		b := basis.Branch(i)
+		pType := chart.Palaces[b]
+		stars := chart.Stars[b]
+		starNames := make([]string, 0)
+		for _, s := range stars {
+			starNames = append(starNames, s.String())
 		}
-		palaces[palace.String()] = v1.PalaceData{
-			Branch: branch.String(),
-			Stars:  starNames,
+		lnStars := make([]string, 0)
+		for _, s := range chart.LiuNianStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				lnStars = append(lnStars, strer.String())
+			}
+		}
+
+		lyStars := make([]string, 0)
+		for _, s := range chart.LiuYueStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				lyStars = append(lyStars, strer.String())
+			}
+		}
+
+		lrStars := make([]string, 0)
+		for _, s := range chart.LiuRiStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				lrStars = append(lrStars, strer.String())
+			}
+		}
+
+		palaces[pType.String()] = v1.PalaceData{
+			Branch:       b.String(),
+			Stars:        starNames,
+			LiuNianStars: lnStars,
+			LiuYueStars:  lyStars,
+			LiuRiStars:   lrStars,
 		}
 	}
 
-	genderStr := "male"
-	if chart.LifePalace.MingGong == basis.PalaceMing {
-		genderStr = "female"
+	patterns := make([]v1.PatternData, 0)
+	for _, p := range chart.Patterns {
+		patterns = append(patterns, v1.PatternData{
+			Name:        p.Name,
+			Description: p.Description,
+			Level:       p.Level,
+		})
+	}
+
+	narrative := make([]v1.KarmicStep, 0)
+	for _, s := range chart.Interpretation.KarmicNarrative {
+		narrative = append(narrative, v1.KarmicStep{
+			Type:   s.Type,
+			Role:   s.Role,
+			Star:   s.Star,
+			Palace: s.Palace,
+			Desc:   s.Desc,
+		})
+	}
+
+	diagnosis := make([]v1.SanFangRole, 0)
+	for _, r := range chart.Interpretation.SanFangDiagnosis {
+		diagnosis = append(diagnosis, v1.SanFangRole{
+			Role:      r.Role,
+			Palace:    r.Palace,
+			Diagnosis: r.Diagnosis,
+		})
+	}
+
+	resonance := make([]v1.ResonancePoint, 0)
+	for _, r := range chart.Interpretation.TemporalResonance {
+		resonance = append(resonance, v1.ResonancePoint{
+			Layer:  r.Layer,
+			Type:   r.Type,
+			Star:   r.Star,
+			Natal:  r.Natal,
+			Palace: r.Palace,
+			Mood:   r.Mood,
+		})
 	}
 
 	response := v1.ZiweiResponse{
-		Gender:     genderStr,
-		Wuxing:     chart.Wuxing.String(),
-		NaYin:      chart.NaYin.String(),
-		MingGong:   chart.LifePalace.MingGong.String(),
-		ShenGong:   chart.LifePalace.ShenGong.String(),
-		YearPillar: chart.YearPillar.String(),
-		DayPillar:  chart.DayPillar.String(),
-		Palaces:    palaces,
+		Gender:       gender,
+		Wuxing:       chart.Wuxing.String(),
+		NaYin:        chart.NaYin.String(),
+		OriginPalace: chart.Palaces[chart.OriginPalace].String(),
+		MingGong:     chart.LifePalace.MingGong.String(),
+		ShenGong:     chart.LifePalace.ShenGong.String(),
+		YearPillar:   chart.YearPillar.String(),
+		DayPillar:    chart.DayPillar.String(),
+		Palaces:      palaces,
+		Patterns:     patterns,
+		Interpretation: v1.InterpretationData{
+			Summary:           chart.Interpretation.Summary,
+			KarmicNarrative:   narrative,
+			SanFangDiagnosis:  diagnosis,
+			TemporalResonance: resonance,
+		},
 	}
 
-	jsonBytes, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "JSON marshal error: %v\n", err)
-		os.Exit(1)
-	}
+	jsonBytes, _ := json.MarshalIndent(response, "", "  ")
 	fmt.Println(string(jsonBytes))
 }

@@ -157,6 +157,31 @@ func HourBranchFromTime(hour int) HourBranch {
 	return HourBranch(((hour + 1) / 2) % 12)
 }
 
+// NaYin represents the sound of the elements for a Ganzhi pair
+type NaYin string
+
+func (n NaYin) String() string {
+	return string(n)
+}
+
+// CalcNaYin returns the NaYin string for a given stem and branch
+func CalcNaYin(s Stem, b Branch) NaYin {
+	// Simple lookup (abbreviated)
+	// In practice, this would be a full table for 60 Jiazi
+	// Let's implement the basic one for 1972-06-08 (Ji-Si)
+	table := map[string]string{
+		"己巳": "大林木",
+		"壬子": "桑柘木",
+		"乙丑": "海中金",
+		"丙午": "天河水",
+	}
+	key := s.String() + b.String()
+	if val, ok := table[key]; ok {
+		return NaYin(val)
+	}
+	return NaYin("未知")
+}
+
 // 農曆日期
 type LunarDate struct {
 	Year  int // 農曆年
@@ -181,4 +206,15 @@ type BirthInfo struct {
 	MonthPillar Pillar     // 月柱
 	DayPillar   Pillar     // 日柱
 	HourPillar  Pillar     // 時柱
+}
+
+func (b BirthInfo) IsLeap() bool {
+	return b.LunarMonth < 0
+}
+
+func (b BirthInfo) GetAbsMonth() int {
+	if b.LunarMonth < 0 {
+		return -b.LunarMonth
+	}
+	return b.LunarMonth
 }

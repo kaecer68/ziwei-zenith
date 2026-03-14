@@ -2,7 +2,6 @@ package engine
 
 import (
 	"fmt"
-
 	"github.com/kaecer68/ziwei-zenith/pkg/basis"
 )
 
@@ -10,77 +9,115 @@ type ZiweiEngine struct{}
 
 type ZiweiChart struct {
 	LifePalace       LifePalace
-	Palaces          map[basis.Palace]basis.Branch
-	Stars            map[basis.Palace][]basis.Star
-	AssistantStars   map[basis.Palace][]interface{}
-	SecondaryStars   map[basis.Palace][]interface{}
-	TransformedStars map[basis.Palace][]interface{}
+	Palaces          map[basis.Branch]basis.Palace
+	Stars            map[basis.Branch][]basis.Star
+	AssistantStars   map[basis.Branch][]interface{}
+	SecondaryStars   map[basis.Branch][]interface{}
+	TransformedStars map[basis.Branch][]interface{}
 	DaYun            []basis.DaYun
-	LiuNian          []basis.LiuNian
-	LiuYue           []basis.LiuYue
-	LiuRi            []basis.LiuRi
-	Patterns         []Pattern
+	LiuNian          basis.LiuNian
+	LiuYue           basis.Branch
+	LiuRi            basis.Branch
+	Patterns         []basis.Pattern
 	Wuxing           basis.Wuxing
 	NaYin            basis.NaYin
 	YearPillar       basis.Pillar
 	MonthPillar      basis.Pillar
 	DayPillar        basis.Pillar
 	HourPillar       basis.Pillar
+	LiuNianStars     map[basis.Branch][]interface{}
+	LiuYueStars        map[basis.Branch][]interface{}
+	LiuRiStars         map[basis.Branch][]interface{}
+	StarBrightness     []basis.StarBrightness
+	OriginPalace     basis.Branch // 來因宮
+	PalaceGans       map[basis.Branch]basis.Stem
+	Interpretation   Interpretation
 }
 
 func New() *ZiweiEngine {
 	return &ZiweiEngine{}
 }
 
-func (e *ZiweiEngine) BuildChart(birth BirthInfo) (*ZiweiChart, error) {
+func (e *ZiweiEngine) BuildChart(birth basis.BirthInfo) (*ZiweiChart, error) {
 	yearPillar := birth.YearPillar
-	monthPillar := birth.MonthPillar
-	dayPillar := birth.DayPillar
 
-	lifePalace := CalcLifePalace(birth.LunarMonth, birth.LunarDay, basis.Branch(birth.HourBranch))
+	absMonth := birth.GetAbsMonth()
+	calcMonth := absMonth
+	// Master Split Rule: Leap Month Split at 15th
+	if birth.IsLeap() && birth.LunarDay >= 16 {
+		calcMonth = (absMonth % 12) + 1
+	}
 
-	wuxing := CalcWuxingJu(yearPillar.Stem, basis.Branch(lifePalace.MingGong))
-	naYin := basis.CalcNaYin(dayPillar.Stem, dayPillar.Branch)
+	lp := CalcLifePalace(calcMonth, basis.Branch(birth.HourBranch))
 
-	palaces := BuildPalaces(lifePalace.MingGong)
+	palaceToBranch := BuildPalaces(lp.MingGong)
+	branchToPalace := make(map[basis.Branch]basis.Palace)
+	for p, b := range palaceToBranch {
+		branchToPalace[b] = p
+	}
 
-	stars := PlaceMainStars(lifePalace.MingGong, wuxing, birth.LunarDay, monthPillar.Branch)
+	// Calculate Palace Gans (Based on Year Stem)
+	yG := int(yearPillar.Stem)
+	tG := ((yG%5)*2 + 2) % 10
+	palaceGans := make(map[basis.Branch]basis.Stem)
+	for i := 0; i < 12; i++ {
+		b := basis.Branch(i)
+		stemIdx := (tG + (i-2+12)%12) % 10
+		palaceGans[b] = basis.Stem(stemIdx)
+	}
 
-	assistantStars := PlaceAssistantStars(lifePalace.MingGong, dayPillar.Stem, yearPillar.Stem)
+	var origin basis.Branch
+	for b, g := range palaceGans {
+		if g == yearPillar.Stem {
+			if b == basis.Branch(0) || b == basis.Branch(1) {
+				if b == yearPillar.Branch {
+					origin = b
+					break
+				}
+				continue
+			}
+			origin = b
+		}
+	}
 
-	secondaryStars := PlaceSecondaryStars(lifePalace.MingGong, yearPillar.Branch, dayPillar.Branch)
+	wuxing := CalcWuxingJu(yearPillar.Stem, lp.MingGong)
+	naYin := basis.CalcNaYin(birth.DayPillar.Stem, birth.DayPillar.Branch)
 
-	transformedStars := PlaceTransformationStars(lifePalace.MingGong, yearPillar.Stem, stars, palaces)
+	ziweiIdx := CalcZiweiStarPos(wuxing.Value(), birth.LunarDay)
+	stars := PlaceMainStars(ziweiIdx)
 
-	dayuns := CalcDaYun(lifePalace.MingGong, birth.Sex, yearPillar.Stem, birth.LunarYear)
+	chart := &ZiweiChart{
+		LifePalace:   lp,
+		Palaces:      branchToPalace,
+		Stars:        stars,
+		Wuxing:       wuxing,
+		NaYin:        naYin,
+		YearPillar:   yearPillar,
+		MonthPillar:  birth.MonthPillar,
+		DayPillar:    birth.DayPillar,
+		HourPillar:   birth.HourPillar,
+		OriginPalace: origin,
+		PalaceGans:   palaceGans,
+	}
 
-	liunians := CalcLiuNian(lifePalace.MingGong, dayPillar.Stem, birth.LunarYear)
+	chart.AssistantStars = PlaceAssistantStars(yearPillar.Stem, calcMonth, basis.Branch(birth.HourBranch))
+	chart.SecondaryStars = PlaceSecondaryStars(yearPillar.Branch, calcMonth, birth.LunarDay, basis.Branch(birth.HourBranch))
+	chart.TransformedStars = PlaceTransformationStars(yearPillar.Stem, chart)
+	chart.DaYun = CalcDaYun(lp.MingGong, yearPillar.Stem, birth.Sex, wuxing)
+	chart.LiuNian = CalcLiuNian(yearPillar.Branch, birth.SolarYear)
+	chart.LiuYue = CalcLiuYue(chart.LiuNian.Branch, birth.LunarMonth, basis.Branch(birth.HourBranch), birth.LunarMonth)
+	chart.LiuRi = CalcLiuRi(chart.LiuYue, birth.LunarDay)
 
-	liuyues := CalcLiuYue(lifePalace.MingGong, yearPillar.Branch, birth.LunarMonth)
+	// Temporal Transformations
+	chart.LiuNianStars = PlaceLayeredTransformations(yearPillar.Stem, chart)
+	chart.LiuYueStars = PlaceLayeredTransformations(birth.MonthPillar.Stem, chart)
+	chart.LiuRiStars = PlaceLayeredTransformations(birth.DayPillar.Stem, chart)
 
-	liuris := CalcLiuRi(lifePalace.MingGong, dayPillar.Stem, birth.LunarDay)
+	chart.Patterns = DetectPatterns(chart)
+	chart.StarBrightness = CalcStarBrightness(chart)
+	chart.Interpretation = GenerateInterpretation(chart)
 
-	patterns := DetectPatterns(stars, palaces, assistantStars)
-
-	return &ZiweiChart{
-		LifePalace:       lifePalace,
-		Palaces:          palaces,
-		Stars:            stars,
-		AssistantStars:   assistantStars,
-		SecondaryStars:   secondaryStars,
-		TransformedStars: transformedStars,
-		DaYun:            dayuns,
-		LiuNian:          liunians,
-		LiuYue:           liuyues,
-		LiuRi:            liuris,
-		Patterns:         patterns,
-		Wuxing:           wuxing,
-		NaYin:            naYin,
-		YearPillar:       yearPillar,
-		MonthPillar:      monthPillar,
-		DayPillar:        dayPillar,
-		HourPillar:       birth.HourPillar,
-	}, nil
+	return chart, nil
 }
 
 func (c *ZiweiChart) String() string {
@@ -91,87 +128,119 @@ func (c *ZiweiChart) String() string {
 	str += fmt.Sprintf("時柱: %s\n", c.HourPillar)
 	str += fmt.Sprintf("五行局: %s\n", c.Wuxing)
 	str += fmt.Sprintf("納音: %s\n", c.NaYin)
-	str += fmt.Sprintf("命宮: %s\n", c.LifePalace.MingGong)
-	str += fmt.Sprintf("身宮: %s\n", c.LifePalace.ShenGong)
+	str += fmt.Sprintf("來因宮: %s (%s)\n", c.OriginPalace, c.Palaces[c.OriginPalace])
+	str += fmt.Sprintf("命宮在: %s\n", c.LifePalace.MingGong)
+	str += fmt.Sprintf("身宮在: %s\n", c.LifePalace.ShenGong)
+	str += fmt.Sprintf("流年命宮: %s | 流年四化 (%s)\n", c.LiuNian.Branch, c.YearPillar.Stem)
+	str += fmt.Sprintf("流月命宮: %s | 流月四化 (%s)\n", c.LiuYue, c.MonthPillar.Stem)
+	str += fmt.Sprintf("流日命宮: %s\n", c.LiuRi)
+
+	str += "\n能量循環 (祿隨忌走):\n"
+	for _, s := range c.Interpretation.KarmicNarrative {
+		str += fmt.Sprintf("  【%s】%s: %s落入%s — %s\n", s.Type, s.Role, s.Star, s.Palace, s.Desc)
+	}
+	str += fmt.Sprintf("\n大師總論: %s\n", c.Interpretation.Summary)
+
+	str += "\n三方四正專業診斷 (Synthesis Diagnosis):\n"
+	for _, r := range c.Interpretation.SanFangDiagnosis {
+		str += fmt.Sprintf("  %-10s [%s]: %s\n", r.Role, r.Palace, r.Diagnosis)
+	}
+
+	str += fmt.Sprintf("\n來因宮動態因果 (Origin Fly-Hua: %s宮發射):\n", c.Interpretation.OriginFlyHua.FromPalace)
+	for _, s := range c.Interpretation.OriginFlyHua.Stages {
+		str += fmt.Sprintf("  • %s (%s) -> 飛入【%s】:\n", s.Type, s.Motive, s.Target)
+		str += fmt.Sprintf("    動作: %s | 陷阱: %s\n", s.Action, s.Trap)
+	}
+
+	if len(c.Interpretation.TemporalResonance) > 0 {
+		str += "\n時空感應 (Temporal Resonance - 歲運疊併):\n"
+		for _, r := range c.Interpretation.TemporalResonance {
+			str += fmt.Sprintf("  [%s][%s] %s 與 %s 於【%s】宮會合:\n", r.Layer, r.Type, r.Star, r.Natal, r.Palace)
+			str += fmt.Sprintf("    解析: %s\n", r.Mood)
+		}
+	}
+
+	str += "\n星曜深度解析 (Ancient Wisdom):\n"
+	for _, sd := range c.Interpretation.StarDetails {
+		if sd.Verse != "" {
+			str += fmt.Sprintf("  ---【 %s 】---\n", sd.Name)
+			str += fmt.Sprintf("  賦文: %s\n", sd.Verse)
+			str += fmt.Sprintf("  正面: %s\n", sd.Positive)
+			str += fmt.Sprintf("  負面: %s\n", sd.Negative)
+			str += fmt.Sprintf("  修行: %s\n", sd.Remedy)
+			if sd.Evolution != "" {
+				str += fmt.Sprintf("  %s\n", sd.Evolution)
+			}
+		}
+	}
 
 	if len(c.Patterns) > 0 {
-		str += "\n格局:\n"
+		str += "\n檢出格局:\n"
 		for _, p := range c.Patterns {
 			str += fmt.Sprintf("  [%s] %s — %s\n", p.Level, p.Name, p.Description)
 		}
 	}
 
-	str += "\n宮位分布:\n"
+	str += "\n宮位分布 (地支物理順序):\n"
 	for i := 0; i < 12; i++ {
-		palace := basis.Palace(i)
-		branch := c.Palaces[palace]
-		stars := c.Stars[palace]
-		assistantStars := c.AssistantStars[palace]
-		secondaryStars := c.SecondaryStars[palace]
-		transformedStars := c.TransformedStars[palace]
+		b := basis.Branch(i)
+		pType := c.Palaces[b]
+		pGan := c.PalaceGans[b]
 
 		starStr := ""
-		for _, s := range stars {
+		for _, s := range c.Stars[b] {
 			starStr += s.String() + " "
 		}
-		for _, as := range assistantStars {
-			switch v := as.(type) {
-			case basis.AuspiciousStar:
-				starStr += v.String() + " "
-			case basis.MaleficStar:
-				starStr += v.String() + " "
-			case basis.LuCunStar:
-				starStr += v.String() + " "
+		for _, s := range c.AssistantStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				starStr += strer.String() + " "
 			}
 		}
-		for _, ss := range secondaryStars {
-			switch v := ss.(type) {
-			case basis.SecondaryStar:
-				starStr += v.String() + " "
+		for _, s := range c.SecondaryStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				starStr += strer.String() + " "
 			}
 		}
-		for _, ts := range transformedStars {
-			switch v := ts.(type) {
-			case basis.TransformedStar:
-				starStr += v.String() + " "
+		for _, s := range c.TransformedStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				starStr += strer.String() + " "
 			}
 		}
+		for _, s := range c.LiuNianStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				starStr += "[流年" + strer.String() + "] "
+			}
+		}
+		for _, s := range c.LiuYueStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				starStr += "[流月" + strer.String() + "] "
+			}
+		}
+		for _, s := range c.LiuRiStars[b] {
+			if strer, ok := s.(interface{ String() string }); ok {
+				starStr += "[流日" + strer.String() + "] "
+			}
+		}
+
 		if starStr == "" {
 			starStr = "(空宮)"
 		}
-		str += fmt.Sprintf("  %s(%s): %s\n", palace, branch, starStr)
-	}
+		prefix := ""
+		if b == c.OriginPalace {
+			prefix += "[來因]"
+		}
+		if b == c.LiuNian.Branch {
+			prefix += "[流年]"
+		}
+		if b == c.LiuYue {
+			prefix += "[流月]"
+		}
+		if b == c.LiuRi {
+			prefix += "[流日]"
+		}
 
-	str += "\n大運:\n"
-	for _, dy := range c.DaYun {
-		str += fmt.Sprintf("  第%d運(%d-%d歲): %s%s\n", dy.Index, dy.StartAge, dy.EndAge, dy.Stem, dy.Branch)
-	}
-
-	str += "\n流年:\n"
-	for _, ln := range c.LiuNian {
-		str += fmt.Sprintf("  %d年: %s%s\n", ln.Year, ln.Stem, ln.Branch)
-	}
-
-	str += "\n流月:\n"
-	for _, ly := range c.LiuYue {
-		str += fmt.Sprintf("  %d月: %s%s\n", ly.Month, ly.Stem, ly.Branch)
-	}
-
-	str += "\n流日:\n"
-	for i := 0; i < min(15, len(c.LiuRi)); i++ {
-		lr := c.LiuRi[i]
-		str += fmt.Sprintf("  %d日: %s%s\n", lr.Day, lr.Stem, lr.Branch)
-	}
-	if len(c.LiuRi) > 15 {
-		str += fmt.Sprintf("  ... (共%d日)\n", len(c.LiuRi))
+		str += fmt.Sprintf("  %s%s%s(%s): %s\n", prefix, pGan, b, pType, starStr)
 	}
 
 	return str
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

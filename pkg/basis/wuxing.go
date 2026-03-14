@@ -5,139 +5,42 @@ import "fmt"
 type Wuxing int
 
 const (
-	WuxingShuiEr Wuxing = iota // 水二局
-	WuxingLiu                  // 火六局
-	WuxingMuSan                // 木三局
-	WuxingTuWu                 // 土五局
-	WuxingJinSi                // 金四局
+	WuxingShui2 Wuxing = 2 // 水二局
+	WuxingMu3   Wuxing = 3 // 木三局
+	WuxingJin4  Wuxing = 4 // 金四局
+	WuxingTu5   Wuxing = 5 // 土五局
+	WuxingHuo6  Wuxing = 6 // 火六局
 )
 
+func (w Wuxing) Value() int {
+	return int(w)
+}
+
 func (w Wuxing) String() string {
-	names := []string{"水二局", "火六局", "木三局", "土五局", "金四局"}
+	names := map[Wuxing]string{
+		WuxingShui2: "水二局",
+		WuxingMu3:   "木三局",
+		WuxingJin4:  "金四局",
+		WuxingTu5:   "土五局",
+		WuxingHuo6:  "火六局",
+	}
 	return names[w]
 }
 
-func (w Wuxing) Value() int {
-	values := []int{2, 6, 3, 5, 4}
-	return values[w]
+// WuxingJuTable maps Palace GanZhi (e.g., "甲子") to Ju number.
+// Based on the verified logic in master_engine_v4.js
+var WuxingJuTable = map[string]int{
+	"甲子": 4, "乙丑": 4, "丙寅": 6, "丁卯": 6, "戊辰": 3, "己巳": 3, "庚午": 5, "辛未": 5, "壬申": 4, "癸酉": 4, "甲戌": 6, "乙亥": 6,
+	"丙子": 2, "丁丑": 2, "戊寅": 5, "己卯": 5, "庚辰": 4, "辛巳": 4, "壬午": 3, "癸未": 3, "甲申": 2, "乙酉": 2, "丙戌": 5, "丁亥": 5,
+	"戊子": 6, "己丑": 6, "庚寅": 3, "辛卯": 3, "壬辰": 2, "癸巳": 2, "甲午": 4, "乙未": 4, "丙申": 6, "丁酉": 6, "戊戌": 3, "己亥": 3,
+	"庚子": 5, "辛丑": 5, "壬寅": 4, "癸卯": 4, "甲辰": 6, "乙巳": 6, "丙午": 2, "丁未": 2, "戊申": 5, "己酉": 5, "庚戌": 4, "辛亥": 4,
+	"壬子": 3, "癸丑": 3, "甲寅": 2, "乙卯": 2, "丙辰": 5, "丁巳": 5, "戊午": 6, "己未": 6, "庚申": 3, "辛酉": 3, "壬戌": 2, "癸亥": 2,
 }
 
-func (w Wuxing) Element() Element {
-	elements := []Element{
-		ElementWater,
-		ElementFire,
-		ElementWood,
-		ElementEarth,
-		ElementMetal,
+func GetWuxingJu(gan Stem, zhi Branch) Wuxing {
+	key := fmt.Sprintf("%s%s", gan, zhi)
+	if val, ok := WuxingJuTable[key]; ok {
+		return Wuxing(val)
 	}
-	return elements[w]
-}
-
-type NaYin int
-
-const (
-	NaYinJiaZi    NaYin = iota // 甲子
-	NaYinYiChou                // 乙丑
-	NaYinBingYin               // 丙寅
-	NaYinDingMao               // 丁卯
-	NaYinWuChen                // 戊辰
-	NaYinJiSi                  // 己巳
-	NaYinGengWu                // 庚午
-	NaYinXinWei                // 辛未
-	NaYinRenShen               // 壬申
-	NaYinGuiYou                // 癸酉
-	NaYinJiaXu                 // 甲戌
-	NaYinYiHai                 // 乙亥
-	NaYinBingZi                // 丙子
-	NaYinDingChou              // 丁丑
-	NaYinWuYin                 // 戊寅
-	NaYinJiMao                 // 己卯
-	NaYinGengChen              // 庚辰
-	NaYinXinSi                 // 辛巳
-	NaYinRenWu                 // 壬午
-	NaYinGuiWei                // 癸未
-	NaYinJiaShen               // 甲申
-	NaYinYiYou                 // 乙酉
-	NaYinBingXu                // 丙戌
-	NaYinDingHai               // 丁亥
-	NaYinWuZi                  // 戊子
-	NaYinJiChou                // 己丑
-	NaYinGengYin               // 庚寅
-	NaYinXinMao                // 辛卯
-	NaYinRenChen               // 壬辰
-	NaYinGuiSi                 // 癸巳
-	NaYinJiaWu                 // 甲午
-	NaYinYiWei                 // 乙未
-	NaYinBingShen              // 丙申
-	NaYinDingYou               // 丁酉
-	NaYinWuXu                  // 戊戌
-	NaYinJiHai                 // 己亥
-	NaYinGengZi                // 庚子
-	NaYinXinChou               // 辛丑
-	NaYinRenYin                // 壬寅
-	NaYinGuiMao                // 癸卯
-	NaYinJiaChen               // 甲辰
-	NaYinYiSi                  // 乙巳
-	NaYinBingWu                // 丙午
-	NaYinDingWei               // 丁未
-	NaYinWuShen                // 戊申
-	NaYinJiYou                 // 己酉
-	NaYinGengXu                // 庚戌
-	NaYinXinHai                // 辛亥
-	NaYinRenZi                 // 壬子
-	NaYinGuiChou               // 癸丑
-)
-
-func (n NaYin) Element() Element {
-	elements := []Element{
-		ElementWood, ElementWood,
-		ElementFire, ElementFire,
-		ElementEarth, ElementEarth,
-		ElementMetal, ElementMetal,
-		ElementWater, ElementWater,
-		ElementWood, ElementWood,
-		ElementFire, ElementFire,
-		ElementEarth, ElementEarth,
-		ElementMetal, ElementMetal,
-		ElementWater, ElementWater,
-		ElementWood, ElementWood,
-		ElementFire, ElementFire,
-		ElementEarth, ElementEarth,
-		ElementMetal, ElementMetal,
-		ElementWater, ElementWater,
-		ElementWood, ElementWood,
-		ElementFire, ElementFire,
-		ElementEarth, ElementEarth,
-		ElementMetal, ElementMetal,
-		ElementWater, ElementWater,
-		ElementWood, ElementWood,
-		ElementFire, ElementFire,
-		ElementEarth, ElementEarth,
-		ElementMetal, ElementMetal,
-		ElementWater, ElementWater,
-		ElementWood, ElementWood,
-		ElementFire, ElementFire,
-		ElementEarth, ElementEarth,
-		ElementMetal, ElementMetal,
-		ElementWater, ElementWater,
-	}
-	return elements[n]
-}
-
-func CalcNaYin(stem Stem, branch Branch) NaYin {
-	return NaYin((int(stem)*12 + int(branch)) % 60)
-}
-
-func (n NaYin) String() string {
-	names := []string{
-		"甲子", "乙丑", "丙寅", "丁卯", "戊辰", "己巳", "庚午", "辛未", "壬申", "癸酉",
-		"甲戌", "乙亥", "丙子", "丁丑", "戊寅", "己卯", "庚辰", "辛巳", "壬午", "癸未",
-		"甲申", "乙酉", "丙戌", "丁亥", "戊子", "己丑", "庚寅", "辛卯", "壬辰", "癸巳",
-		"甲午", "乙未", "丙申", "丁酉", "戊戌", "己亥", "庚子", "辛丑", "壬寅", "癸卯",
-		"甲辰", "乙巳", "丙午", "丁未", "戊申", "己酉", "庚戌", "辛亥", "壬子", "癸丑",
-	}
-	if int(n) >= len(names) {
-		return fmt.Sprintf("NA(%d)", n)
-	}
-	return names[n]
+	return WuxingShui2 // Default
 }

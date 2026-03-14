@@ -5,62 +5,37 @@ import (
 )
 
 type LifePalace struct {
-	MingGong basis.Palace
-	ShenGong basis.Palace
+	MingGong basis.Branch
+	ShenGong basis.Branch
 }
 
-func CalcLifePalace(lunarMonth int, lunarDay int, hourBranch basis.Branch) LifePalace {
-	monthBranch := basis.Branch(0)
-	switch lunarMonth {
-	case 1:
-		monthBranch = basis.BranchYin
-	case 2:
-		monthBranch = basis.BranchMao
-	case 3:
-		monthBranch = basis.BranchChen
-	case 4:
-		monthBranch = basis.BranchSi
-	case 5:
-		monthBranch = basis.BranchWu
-	case 6:
-		monthBranch = basis.BranchWei
-	case 7:
-		monthBranch = basis.BranchShen
-	case 8:
-		monthBranch = basis.BranchYou
-	case 9:
-		monthBranch = basis.BranchXu
-	case 10:
-		monthBranch = basis.BranchHai
-	case 11:
-		monthBranch = basis.BranchZi
-	case 12:
-		monthBranch = basis.BranchChou
-	}
+func CalcLifePalace(lunarMonth int, hourBranch basis.Branch) LifePalace {
+	// Month start from 寅 (2)
+	monthPos := (2 + lunarMonth - 1) % 12
 
-	monthOffset := int(monthBranch)
+	// MingGong moves counter-clockwise from monthPos by hourBranch
+	mingIdx := (monthPos - int(hourBranch) + 12) % 12
 
-	mingOffset := (monthOffset - int(hourBranch) + 12) % 12
-	shenOffset := (monthOffset + int(hourBranch)) % 12
+	// ShenGong moves clockwise from monthPos by hourBranch
+	shenIdx := (monthPos + int(hourBranch)) % 12
 
 	return LifePalace{
-		MingGong: basis.Palace(mingOffset),
-		ShenGong: basis.Palace(shenOffset),
+		MingGong: basis.Branch(mingIdx),
+		ShenGong: basis.Branch(shenIdx),
 	}
 }
 
-func BuildPalaces(mingGong basis.Palace) map[basis.Palace]basis.Branch {
-	palaces := make(map[basis.Palace]basis.Branch)
-	mingIdx := int(mingGong)
-	mingBranch := basis.Branch(mingIdx)
+func BuildPalaces(mingBranch basis.Branch) map[basis.Palace]basis.Branch {
+	palaceMap := make(map[basis.Palace]basis.Branch)
+	mingIdx := int(mingBranch)
 
 	for i := 0; i < 12; i++ {
-		palace := basis.Palace(i)
-		branchIdx := (mingIdx + i) % 12
-		palaces[palace] = basis.Branch(branchIdx)
+		palaceType := basis.Palace(i)
+		// Palaces flow counter-clockwise: 0:命, 1:兄, 2:妻...
+		// Branch index decreases as Palace index increases
+		branchIdx := (mingIdx - i + 12) % 12
+		palaceMap[palaceType] = basis.Branch(branchIdx)
 	}
 
-	_ = mingBranch
-
-	return palaces
+	return palaceMap
 }

@@ -4,99 +4,88 @@ import (
 	"github.com/kaecer68/ziwei-zenith/pkg/basis"
 )
 
-type StarPlacement struct {
-	Star   basis.Star
-	Palace basis.Palace
-}
+// CalcZiweiStarPos follows the exact logic of master_engine_v4.js: getZiweiIdx(d, ju)
+func CalcZiweiStarPos(juValue int, lunarDay int) int {
+	r := lunarDay % juValue
+	q := lunarDay / juValue
 
-func CalcWuxingJu(yearStem basis.Stem, mingGongBranch basis.Branch) basis.Wuxing {
-	table := [10][12]basis.Wuxing{
-		{basis.WuxingShuiEr, basis.WuxingLiu, basis.WuxingMuSan, basis.WuxingTuWu, basis.WuxingJinSi, basis.WuxingLiu},
-		{basis.WuxingLiu, basis.WuxingTuWu, basis.WuxingJinSi, basis.WuxingMuSan, basis.WuxingShuiEr, basis.WuxingTuWu},
-		{basis.WuxingTuWu, basis.WuxingShuiEr, basis.WuxingShuiEr, basis.WuxingJinSi, basis.WuxingLiu, basis.WuxingMuSan},
-		{basis.WuxingMuSan, basis.WuxingJinSi, basis.WuxingLiu, basis.WuxingShuiEr, basis.WuxingTuWu, basis.WuxingJinSi},
-		{basis.WuxingJinSi, basis.WuxingShuiEr, basis.WuxingTuWu, basis.WuxingLiu, basis.WuxingMuSan, basis.WuxingShuiEr},
+	if r == 0 {
+		return (2 + q - 1) % 12
 	}
 
-	return table[yearStem][mingGongBranch]
+	x := juValue - r
+	nQ := (lunarDay + x) / juValue
+	bP := (2 + nQ - 1) % 12
+
+	if x%2 != 0 {
+		// If X is Odd: move backward X
+		return (bP - x + 12) % 12
+	} else {
+		// If X is Even: move forward X
+		return (bP + x) % 12
+	}
 }
 
-func CalcZiweiStar(wuxing basis.Wuxing, lunarDay int) int {
-	division := wuxing.Value()
-	multiple := lunarDay / division
-	remainder := lunarDay % division
+func PlaceMainStars(ziweiIdx int) map[basis.Branch][]basis.Star {
+	stars := make(map[basis.Branch][]basis.Star)
 
-	startingPoint := multiple
-	if remainder%2 == 1 {
-		startingPoint = multiple - remainder
-	}
-	if startingPoint < 0 {
-		startingPoint = 0
+	// Ziwei Group (Counter-clockwise offsets from Ziwei)
+	// Master Engine: [['紫微', 0], ['天機', -1], ['太陽', -3], ['武曲', -4], ['天同', -5], ['廉貞', -8]]
+	ziweiGroup := []struct {
+		star   basis.Star
+		offset int
+	}{
+		{basis.StarZiwei, 0},
+		{basis.StarTianji, -1},
+		{basis.StarTaiyang, -3},
+		{basis.StarWuqu, -4},
+		{basis.StarTiantong, -5},
+		{basis.StarLianzhen, -8},
 	}
 
-	return startingPoint % 12
+	for _, s := range ziweiGroup {
+		pos := (ziweiIdx + s.offset + 12) % 12
+		stars[basis.Branch(pos)] = append(stars[basis.Branch(pos)], s.star)
+	}
+
+	// Tianfu Symmetry: const tf = (4 - zw + 12) % 12;
+	tianfuIdx := (4 - ziweiIdx + 12) % 12
+
+	// Tianfu Group (Clockwise offsets from Tianfu)
+	// Master Engine: [['天府', 0], ['太陰', 1], ['貪狼', 2], ['巨門', 3], ['天相', 4], ['天梁', 5], ['七殺', 6], ['破軍', 10]]
+	tianfuGroup := []struct {
+		star   basis.Star
+		offset int
+	}{
+		{basis.StarTianfu, 0},
+		{basis.StarTaiyin, 1},
+		{basis.StarTanlang, 2},
+		{basis.StarJumen, 3},
+		{basis.StarTianxiang, 4},
+		{basis.StarTianliang, 5},
+		{basis.StarQisha, 6},
+		{basis.StarPojun, 10},
+	}
+
+	for _, s := range tianfuGroup {
+		pos := (tianfuIdx + s.offset) % 12
+		stars[basis.Branch(pos)] = append(stars[basis.Branch(pos)], s.star)
+	}
+
+	return stars
 }
 
-func PlaceMainStars(mingGong basis.Palace, wuxing basis.Wuxing, lunarDay int, monthBranch basis.Branch) map[basis.Palace][]basis.Star {
-	palaceStars := make(map[basis.Palace][]basis.Star)
+func CalcWuxingJu(yearStem basis.Stem, mingBranch basis.Branch) basis.Wuxing {
+	// Find MingGong Palace Gan based on Year Stem (tG)
+	// Master Engine: const tG = ((yG % 5) * 2 + 2) % 10;
+	// yG = 0(Jia)...
+	yG := int(yearStem)
+	tG := ((yG%5)*2 + 2) % 10
 
-	ziweiIdx := CalcZiweiStar(wuxing, lunarDay)
-	ziweiPalace := basis.Palace((int(mingGong) + ziweiIdx) % 12)
-	palaceStars[ziweiPalace] = append(palaceStars[ziweiPalace], basis.StarZiwei)
+	// GongGans: GAN[(tG + (i - 2 + 12) % 12) % 10]
+	// If mingBranch is at index i:
+	mingIdx := int(mingBranch)
+	mingStemIdx := (tG + (mingIdx-2+12)%12) % 10
 
-	tianfuIdx := (ziweiIdx + 12 - 1) % 12
-	tianfuPalace := basis.Palace((int(mingGong) + tianfuIdx) % 12)
-	palaceStars[tianfuPalace] = append(palaceStars[tianfuPalace], basis.StarTianfu)
-
-	tianjiIdx := (ziweiIdx + 12 - 1) % 12
-	tianjiPalace := basis.Palace((int(mingGong) + tianjiIdx) % 12)
-	palaceStars[tianjiPalace] = append(palaceStars[tianjiPalace], basis.StarTianji)
-
-	taiyangIdx := (tianjiIdx + 12 - 2) % 12
-	taiyangPalace := basis.Palace((int(mingGong) + taiyangIdx) % 12)
-	palaceStars[taiyangPalace] = append(palaceStars[taiyangPalace], basis.StarTaiyang)
-
-	wuquIdx := (taiyangIdx + 12 - 1) % 12
-	wuquPalace := basis.Palace((int(mingGong) + wuquIdx) % 12)
-	palaceStars[wuquPalace] = append(palaceStars[wuquPalace], basis.StarWuqu)
-
-	tiantongIdx := (wuquIdx + 12 - 1) % 12
-	tiantongPalace := basis.Palace((int(mingGong) + tiantongIdx) % 12)
-	palaceStars[tiantongPalace] = append(palaceStars[tiantongPalace], basis.StarTiantong)
-
-	lianzhenIdx := (tiantongIdx + 12 - 1) % 12
-	lianzhenPalace := basis.Palace((int(mingGong) + lianzhenIdx) % 12)
-	palaceStars[lianzhenPalace] = append(palaceStars[lianzhenPalace], basis.StarLianzhen)
-
-	tanlangIdx := (lianzhenIdx + 12 - 1) % 12
-	tanlangPalace := basis.Palace((int(mingGong) + tanlangIdx) % 12)
-	palaceStars[tanlangPalace] = append(palaceStars[tanlangPalace], basis.StarTanlang)
-
-	jumenIdx := (tanlangIdx + 12 - 1) % 12
-	jumenPalace := basis.Palace((int(mingGong) + jumenIdx) % 12)
-	palaceStars[jumenPalace] = append(palaceStars[jumenPalace], basis.StarJumen)
-
-	tianxiangIdx := (jumenIdx + 12 - 1) % 12
-	tianxiangPalace := basis.Palace((int(mingGong) + tianxiangIdx) % 12)
-	palaceStars[tianxiangPalace] = append(palaceStars[tianxiangPalace], basis.StarTianxiang)
-
-	tianliangIdx := (tianxiangIdx + 12 - 1) % 12
-	tianliangPalace := basis.Palace((int(mingGong) + tianliangIdx) % 12)
-	palaceStars[tianliangPalace] = append(palaceStars[tianliangPalace], basis.StarTianliang)
-
-	qishaIdx := (tianliangIdx + 12 - 1) % 12
-	qishaPalace := basis.Palace((int(mingGong) + qishaIdx) % 12)
-	palaceStars[qishaPalace] = append(palaceStars[qishaPalace], basis.StarQisha)
-
-	pojunIdx := (qishaIdx + 12 - 1) % 12
-	pojunPalace := basis.Palace((int(mingGong) + pojunIdx) % 12)
-	palaceStars[pojunPalace] = append(palaceStars[pojunPalace], basis.StarPojun)
-
-	taiyinIdx := (pojunIdx + 12 - 1) % 12
-	taiyinPalace := basis.Palace((int(mingGong) + taiyinIdx) % 12)
-	palaceStars[taiyinPalace] = append(palaceStars[taiyinPalace], basis.StarTaiyin)
-
-	_ = monthBranch
-
-	return palaceStars
+	return basis.GetWuxingJu(basis.Stem(mingStemIdx), mingBranch)
 }
