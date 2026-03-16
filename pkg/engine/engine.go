@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+
 	"github.com/kaecer68/ziwei-zenith/pkg/basis"
 )
 
@@ -13,6 +14,8 @@ type ZiweiChart struct {
 	Stars            map[basis.Branch][]basis.Star
 	AssistantStars   map[basis.Branch][]interface{}
 	SecondaryStars   map[basis.Branch][]interface{}
+	ChangSheng       map[basis.Branch]basis.ChangShengStage
+	BoShi            map[basis.Branch]basis.BoShiStar
 	TransformedStars map[basis.Branch][]interface{}
 	DaYun            []basis.DaYun
 	LiuNian          basis.LiuNian
@@ -26,9 +29,9 @@ type ZiweiChart struct {
 	DayPillar        basis.Pillar
 	HourPillar       basis.Pillar
 	LiuNianStars     map[basis.Branch][]interface{}
-	LiuYueStars        map[basis.Branch][]interface{}
-	LiuRiStars         map[basis.Branch][]interface{}
-	StarBrightness     []basis.StarBrightness
+	LiuYueStars      map[basis.Branch][]interface{}
+	LiuRiStars       map[basis.Branch][]interface{}
+	StarBrightness   []basis.StarBrightness
 	OriginPalace     basis.Branch // 來因宮
 	PalaceGans       map[basis.Branch]basis.Stem
 	Interpretation   Interpretation
@@ -81,7 +84,7 @@ func (e *ZiweiEngine) BuildChart(birth basis.BirthInfo) (*ZiweiChart, error) {
 	}
 
 	wuxing := CalcWuxingJu(yearPillar.Stem, lp.MingGong)
-	naYin := basis.CalcNaYin(birth.DayPillar.Stem, birth.DayPillar.Branch)
+	naYin := basis.CalcNaYin(yearPillar.Stem, yearPillar.Branch)
 
 	ziweiIdx := CalcZiweiStarPos(wuxing.Value(), birth.LunarDay)
 	stars := PlaceMainStars(ziweiIdx)
@@ -101,7 +104,9 @@ func (e *ZiweiEngine) BuildChart(birth basis.BirthInfo) (*ZiweiChart, error) {
 	}
 
 	chart.AssistantStars = PlaceAssistantStars(yearPillar.Stem, calcMonth, basis.Branch(birth.HourBranch))
-	chart.SecondaryStars = PlaceSecondaryStars(yearPillar.Branch, calcMonth, birth.LunarDay, basis.Branch(birth.HourBranch))
+	chart.SecondaryStars = PlaceSecondaryStars(yearPillar.Stem, yearPillar.Branch, calcMonth, birth.LunarDay, basis.Branch(birth.HourBranch), lp.MingGong, lp.ShenGong)
+	chart.ChangSheng = CalcChangShengStages(wuxing, birth.Sex, yearPillar.Stem)
+	chart.BoShi = CalcBoShiStars(locateLuCun(yearPillar.Stem), birth.Sex, yearPillar.Stem)
 	chart.TransformedStars = PlaceTransformationStars(yearPillar.Stem, chart)
 	chart.DaYun = CalcDaYun(lp.MingGong, yearPillar.Stem, birth.Sex, wuxing)
 	chart.LiuNian = CalcLiuNian(yearPillar.Branch, birth.SolarYear)
@@ -237,6 +242,20 @@ func (c *ZiweiChart) String() string {
 		}
 		if b == c.LiuRi {
 			prefix += "[流日]"
+		}
+
+		extra := ""
+		if stage, ok := c.ChangSheng[b]; ok {
+			extra += stage.String()
+		}
+		if boShi, ok := c.BoShi[b]; ok {
+			if extra != "" {
+				extra += " "
+			}
+			extra += boShi.String()
+		}
+		if extra != "" {
+			starStr += " {" + extra + "}"
 		}
 
 		str += fmt.Sprintf("  %s%s%s(%s): %s\n", prefix, pGan, b, pType, starStr)

@@ -65,7 +65,9 @@ func main() {
 
 	yPillar = basis.Pillar{Stem: basis.Stem(pillar.Year.StemIndex), Branch: basis.Branch(pillar.Year.BranchIndex)}
 	mPillar = basis.Pillar{Stem: basis.Stem(pillar.Month.StemIndex), Branch: basis.Branch(pillar.Month.BranchIndex)}
-	dPillar = basis.Pillar{Stem: basis.Stem(pillar.Day.StemIndex), Branch: basis.Branch(pillar.Day.BranchIndex)}
+	// Fix: use local time JD for day pillar (library converts to UTC internally)
+	localDayPillar := zodiac.GetDaySexagenary(celestial.TimeToJD(solarTime))
+	dPillar = basis.Pillar{Stem: basis.Stem(localDayPillar.StemIndex), Branch: basis.Branch(localDayPillar.BranchIndex)}
 
 	if isLunar {
 		lYear = year

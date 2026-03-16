@@ -46,7 +46,7 @@ func PlaceAssistantStars(yearStem basis.Stem, lunarMonth int, hourBranch basis.B
 	return stars
 }
 
-func PlaceSecondaryStars(yearBranch basis.Branch, lunarMonth int, lunarDay int, hourBranch basis.Branch) map[basis.Branch][]interface{} {
+func PlaceSecondaryStars(yearStem basis.Stem, yearBranch basis.Branch, lunarMonth int, lunarDay int, hourBranch basis.Branch, mingBranch basis.Branch, shenBranch basis.Branch) map[basis.Branch][]interface{} {
 	stars := make(map[basis.Branch][]interface{})
 
 	// 1. Fire star & Bell star (Year Branch + Hour)
@@ -147,6 +147,106 @@ func PlaceSecondaryStars(yearBranch basis.Branch, lunarMonth int, lunarDay int, 
 	// 14. Taifu & Fenggao (Hour)
 	stars[basis.Branch((6+int(hourBranch))%12)] = append(stars[basis.Branch((6+int(hourBranch))%12)], basis.SecondaryTianning)
 	stars[basis.Branch((2+int(hourBranch))%12)] = append(stars[basis.Branch((2+int(hourBranch))%12)], basis.SecondaryFenggao)
+
+	// 15. 天哭 (Year Branch): (6 - yearBranch + 12) % 12
+	tiankuIdx := (6 - int(yearBranch) + 12) % 12
+	stars[basis.Branch(tiankuIdx)] = append(stars[basis.Branch(tiankuIdx)], basis.SecondaryTianku)
+
+	// 16. 天虛 (Year Branch): (6 + yearBranch) % 12
+	tianxuIdx := (6 + int(yearBranch)) % 12
+	stars[basis.Branch(tianxuIdx)] = append(stars[basis.Branch(tianxuIdx)], basis.SecondaryTianxu)
+
+	// 17. 華蓋 (Year Branch): 三合局墓庫位
+	huagaiTable := map[basis.Branch]int{
+		8: 4, 0: 4, 4: 4, // 申子辰 -> 辰(4)
+		2: 10, 6: 10, 10: 10, // 寅午戌 -> 戌(10)
+		5: 1, 9: 1, 1: 1, // 巳酉丑 -> 丑(1)
+		11: 7, 3: 7, 7: 7, // 亥卯未 -> 未(7)
+	}
+	stars[basis.Branch(huagaiTable[yearBranch])] = append(stars[basis.Branch(huagaiTable[yearBranch])], basis.SecondaryHuagai)
+
+	// 18. 破碎 (Year Branch): {子午卯酉}->巳, {丑辰未戌}->丑, {寅巳申亥}->酉
+	posuiTable := map[basis.Branch]int{
+		0: 5, 6: 5, 3: 5, 9: 5, // 子午卯酉 -> 巳(5)
+		1: 1, 4: 1, 7: 1, 10: 1, // 丑辰未戌 -> 丑(1)
+		2: 9, 5: 9, 8: 9, 11: 9, // 寅巳申亥 -> 酉(9)
+	}
+	stars[basis.Branch(posuiTable[yearBranch])] = append(stars[basis.Branch(posuiTable[yearBranch])], basis.SecondaryPosui)
+
+	// 19. 蜚廉 (Year Branch): (yearBranch + 8) % 12
+	feilianIdx := (int(yearBranch) + 8) % 12
+	stars[basis.Branch(feilianIdx)] = append(stars[basis.Branch(feilianIdx)], basis.SecondaryFeilian)
+
+	// 20. 天官 (Year Stem)
+	tianguanTable := map[basis.Stem]int{
+		basis.StemJia: 7, basis.StemYi: 4, basis.StemBing: 5, basis.StemDing: 2,
+		basis.StemWu: 3, basis.StemJi: 9, basis.StemGeng: 11, basis.StemXin: 9,
+		basis.StemRen: 10, basis.StemGui: 6,
+	}
+	stars[basis.Branch(tianguanTable[yearStem])] = append(stars[basis.Branch(tianguanTable[yearStem])], basis.SecondaryTianguan)
+
+	// 21. 天福 (Year Stem)
+	tianfuTable := map[basis.Stem]int{
+		basis.StemJia: 9, basis.StemYi: 8, basis.StemBing: 0, basis.StemDing: 11,
+		basis.StemWu: 3, basis.StemJi: 2, basis.StemGeng: 6, basis.StemXin: 5,
+		basis.StemRen: 6, basis.StemGui: 5,
+	}
+	stars[basis.Branch(tianfuTable[yearStem])] = append(stars[basis.Branch(tianfuTable[yearStem])], basis.SecondaryTianfu)
+
+	// 22. 恩光 (文昌位 + 日數 - 2): 以文昌宮起初一，順數至生日，再退一位
+	wenchangPos := (10 - int(hourBranch) + 12) % 12
+	enguangIdx := (wenchangPos + lunarDay - 2 + 12) % 12
+	stars[basis.Branch(enguangIdx)] = append(stars[basis.Branch(enguangIdx)], basis.SecondaryEnguang)
+
+	// 23. 天貴 (文曲位 + 日數 - 2): 以文曲宮起初一，順數至生日，再退一位
+	wenquPos := (4 + int(hourBranch)) % 12
+	tianguiIdx := (wenquPos + lunarDay - 2 + 12) % 12
+	stars[basis.Branch(tianguiIdx)] = append(stars[basis.Branch(tianguiIdx)], basis.SecondaryTiangui)
+
+	// 24. 天才 (命宮支 + 年支)
+	tiancaiIdx := (int(mingBranch) + int(yearBranch)) % 12
+	stars[basis.Branch(tiancaiIdx)] = append(stars[basis.Branch(tiancaiIdx)], basis.SecondaryTiancai)
+
+	// 25. 天壽 (身宮支 + 年支)
+	tianshouIdx := (int(shenBranch) + int(yearBranch)) % 12
+	stars[basis.Branch(tianshouIdx)] = append(stars[basis.Branch(tianshouIdx)], basis.SecondaryTianshou)
+
+	// 26. 天德 (Year Stem)
+	tiandeTable := map[basis.Stem]int{
+		basis.StemJia: 9, basis.StemYi: 8, basis.StemBing: 0, basis.StemDing: 11,
+		basis.StemWu: 3, basis.StemJi: 2, basis.StemGeng: 6, basis.StemXin: 5,
+		basis.StemRen: 9, basis.StemGui: 8,
+	}
+	stars[basis.Branch(tiandeTable[yearStem])] = append(stars[basis.Branch(tiandeTable[yearStem])], basis.SecondaryTiande)
+
+	// 27. 月德 (Year Stem)
+	yuedeTable := map[basis.Stem]int{
+		basis.StemJia: 5, basis.StemYi: 6, basis.StemBing: 8, basis.StemDing: 9,
+		basis.StemWu: 11, basis.StemJi: 0, basis.StemGeng: 2, basis.StemXin: 3,
+		basis.StemRen: 5, basis.StemGui: 6,
+	}
+	stars[basis.Branch(yuedeTable[yearStem])] = append(stars[basis.Branch(yuedeTable[yearStem])], basis.SecondaryYuede)
+
+	// 28. 天傷 (僕役宮 = Palace index 7 = mingBranch - 7)
+	tianshangIdx := (int(mingBranch) - 7 + 12) % 12
+	stars[basis.Branch(tianshangIdx)] = append(stars[basis.Branch(tianshangIdx)], basis.SecondaryTianshang)
+
+	// 29. 天使 (疾厄宮 = Palace index 5 = mingBranch - 5)
+	tianshiIdx := (int(mingBranch) - 5 + 12) % 12
+	stars[basis.Branch(tianshiIdx)] = append(stars[basis.Branch(tianshiIdx)], basis.SecondaryTianshi)
+
+	// 30. 天空 (Year Branch): (yearBranch + 1) % 12
+	tiankongIdx := (int(yearBranch) + 1) % 12
+	stars[basis.Branch(tiankongIdx)] = append(stars[basis.Branch(tiankongIdx)], basis.SecondaryTiankong)
+
+	// 31. 劫煞 (Year Branch): 三合局
+	jieshaTable := map[basis.Branch]int{
+		8: 5, 0: 5, 4: 5, // 申子辰 -> 巳(5)
+		2: 11, 6: 11, 10: 11, // 寅午戌 -> 亥(11)
+		5: 2, 9: 2, 1: 2, // 巳酉丑 -> 寅(2)
+		11: 8, 3: 8, 7: 8, // 亥卯未 -> 申(8)
+	}
+	stars[basis.Branch(jieshaTable[yearBranch])] = append(stars[basis.Branch(jieshaTable[yearBranch])], basis.SecondaryJiesha)
 
 	return stars
 }

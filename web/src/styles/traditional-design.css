@@ -1,0 +1,420 @@
+/* 
+ * Ziwei Zenith Traditional Design System
+ * 傳統紫微斗數美學設計系統
+ * 莊重、典雅、文化內涵
+ */
+
+/* ===== Google Fonts Import ===== */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+/* ===== CSS Variables ===== */
+:root {
+  /* Traditional Chinese Colors */
+  --imperial-red: #C73E3A;        /* 朱紅 */
+  --imperial-gold: #D4AF37;       /* 金 */
+  --jade-green: #00A86B;          /* 翠綠 */
+  --ink-black: #2C2C2C;           /* 墨黑 */
+  --paper-white: #FCF6F5;         /* 宣紙白 */
+  --bamboo-green: #8FBC8F;        /* 竹綠 */
+  --plum-purple: #8B4789;         /* 梅紫 */
+  --cloud-blue: #87CEEB;          /* 雲藍 */
+  
+  /* Extended palette */
+  --primary: var(--imperial-red);
+  --secondary: var(--jade-green);
+  --accent: var(--imperial-gold);
+  --background: var(--paper-white);
+  --text: var(--ink-black);
+  --text-secondary: #4A4A4A;
+  --border: #E5E5E5;
+  
+  /* Typography */
+  --font-serif: 'Noto Serif TC', serif;
+  --font-sans: 'Noto Sans TC', sans-serif;
+  
+  /* Spacing - Traditional Chinese proportions */
+  --space-xs: 0.5rem;   /* 8px */
+  --space-sm: 1rem;     /* 16px */
+  --space-md: 1.5rem;   /* 24px */
+  --space-lg: 2rem;     /* 32px */
+  --space-xl: 3rem;     /* 48px */
+  --space-2xl: 4rem;    /* 64px */
+  
+  /* Border radius - Subtle */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  
+  /* Shadows - Soft and traditional */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  
+  /* Transitions */
+  --transition-fast: 200ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+}
+
+/* ===== Global Styles ===== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-serif);
+  background: var(--background);
+  color: var(--text);
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== Typography ===== */
+.heading-xl {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--primary);
+  text-align: center;
+}
+
+.heading-lg {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.heading-md {
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 3vw, 1.875rem);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.heading-sm {
+  font-family: var(--font-sans);
+  font-size: clamp(0.875rem, 2vw, 1.125rem);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.body-lg {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.body-md {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.body-sm {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ===== Components ===== */
+
+/* Traditional Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--primary);
+  color: var(--paper-white);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.btn-primary:hover {
+  background: transparent;
+  color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* Traditional Cards */
+.card {
+  background: var(--paper-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-gold {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, var(--paper-white) 100%);
+}
+
+.card-gold::before {
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+}
+
+/* Palace Grid - Traditional Layout */
+.palace-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 3px solid var(--primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+
+.palace-grid::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, transparent 30%, rgba(212, 175, 55, 0.1) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(199, 62, 58, 0.05) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.palace-cell {
+  background: var(--paper-white);
+  padding: var(--space-sm);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  position: relative;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.palace-cell:hover {
+  background: rgba(212, 175, 55, 0.05);
+  border-color: var(--accent);
+  z-index: 10;
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+.palace-cell-header {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--primary);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.palace-cell-stars {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.palace-cell-origin {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%);
+  border-color: var(--accent);
+}
+
+.palace-cell-current {
+  background: linear-gradient(135deg, rgba(199, 62, 58, 0.1) 0%, rgba(199, 62, 58, 0.05) 100%);
+  border-color: var(--primary);
+}
+
+/* Traditional Loading */
+.loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Traditional Section Headers */
+.section-header {
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+  position: relative;
+}
+
+.section-header::after {
+  content: '';
+  position: absolute;
+  bottom: -var(--space-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}
+
+/* Traditional Decorative Elements */
+.traditional-border {
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-md);
+  position: relative;
+  background: var(--paper-white);
+}
+
+.traditional-border::before,
+.traditional-border::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--primary);
+}
+
+.traditional-border::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.traditional-border::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .palace-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .palace-cell {
+    min-height: 100px;
+    padding: var(--space-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .palace-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+  }
+  
+  .palace-cell {
+    min-height: 80px;
+    padding: 0.5rem;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus states */
+.btn-primary:focus,
+.btn-secondary:focus,
+.card:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Dark mode - Traditional */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1A1A1A;
+    --text: var(--paper-white);
+    --text-secondary: #B0B0B0;
+    --border: #333333;
+  }
+  
+  .card {
+    background: #2A2A2A;
+    border-color: var(--border);
+  }
+  
+  .palace-cell {
+    background: #2A2A2A;
+    color: var(--text);
+  }
+  
+  .palace-cell:hover {
+    background: rgba(212, 175, 55, 0.1);
+  }
+}

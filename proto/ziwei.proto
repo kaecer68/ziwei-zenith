@@ -1,0 +1,226 @@
+syntax = "proto3";
+
+package ziwei.v1;
+
+option go_package = "github.com/kaecer68/ziwei-zenith/pkg/api/grpc/v1;grpcv1";
+
+// 紫微斗數排盤服務
+service ZiweiService {
+  // 計算命盤
+  rpc Calculate(CalculateRequest) returns (CalculateResponse);
+  // 列出所有紀錄
+  rpc ListRecords(ListRecordsRequest) returns (ListRecordsResponse);
+  // 建立紀錄
+  rpc CreateRecord(CreateRecordRequest) returns (CreateRecordResponse);
+  // 刪除紀錄
+  rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse);
+  // 列出標籤
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
+}
+
+// ─── Calculate ───
+
+message CalculateRequest {
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+  int32 hour = 4;
+  string gender = 5;    // "male" | "female"
+  bool is_lunar = 6;
+  bool is_leap = 7;
+  bool is_dst = 8;
+}
+
+message CalculateResponse {
+  string gender = 1;
+  string wuxing = 2;
+  string na_yin = 3;
+  string origin_palace = 4;
+  string ming_gong = 5;
+  string shen_gong = 6;
+  string year_pillar = 7;
+  string day_pillar = 8;
+  map<string, PalaceData> palaces = 9;
+  repeated PatternData patterns = 10;
+  InterpretationData interpretation = 11;
+  repeated DaYunData da_yun = 12;
+  TemporalPalaceData liu_nian = 13;
+  TemporalPalaceData liu_yue = 14;
+  TemporalPalaceData liu_ri = 15;
+  DaYunData current_da_yun = 16;
+}
+
+message PalaceData {
+  string branch = 1;
+  string palace_gan = 2;
+  repeated string stars = 3;
+  repeated PalaceStar star_details = 4;
+  repeated string assistant_stars = 5;
+  repeated string secondary_stars = 6;
+  string chang_sheng = 7;
+  string bo_shi = 8;
+  repeated TransformData natal_transforms = 9;
+  repeated string liu_nian_stars = 10;
+  repeated TransformData liu_nian_transforms = 11;
+  repeated string liu_yue_stars = 12;
+  repeated TransformData liu_yue_transforms = 13;
+  repeated string liu_ri_stars = 14;
+  repeated TransformData liu_ri_transforms = 15;
+  repeated string da_yun_ages = 16;
+  FlyHuaAnalysis fly_hua = 17;
+}
+
+message PalaceStar {
+  string name = 1;
+  string brightness = 2;
+}
+
+message TransformData {
+  string star = 1;
+  string transformation = 2;
+  string display = 3;
+}
+
+message TemporalPalaceData {
+  string label = 1;
+  string branch = 2;
+  string palace = 3;
+  string stem = 4;
+}
+
+message DaYunData {
+  int32 index = 1;
+  int32 start_age = 2;
+  int32 end_age = 3;
+  string stem = 4;
+  string branch = 5;
+  string palace = 6;
+}
+
+message PatternData {
+  string name = 1;
+  string description = 2;
+  string level = 3;
+}
+
+message InterpretationData {
+  string summary = 1;
+  string character_traits = 2;
+  string origin_palace_analysis = 3;
+  repeated KarmicStep karmic_narrative = 4;
+  repeated SanFangRole san_fang_diagnosis = 5;
+  repeated DeepStarAnalysis star_details = 6;
+  FlyHuaAnalysis origin_fly_hua = 7;
+  repeated ResonancePoint temporal_resonance = 8;
+  repeated string classic_patterns = 9;
+}
+
+message DeepStarAnalysis {
+  string name = 1;
+  string verse = 2;
+  string positive = 3;
+  string negative = 4;
+  string remedy = 5;
+  string evolution = 6;
+  string brightness = 7;
+}
+
+message FlyHuaAnalysis {
+  string from_palace = 1;
+  string stem = 2;
+  repeated FlyStage stages = 3;
+}
+
+message FlyStage {
+  string type = 1;
+  string star = 2;
+  string target = 3;
+  string motive = 4;
+  string action = 5;
+  string trap = 6;
+}
+
+message ResonancePoint {
+  string layer = 1;
+  string type = 2;
+  string star = 3;
+  string natal = 4;
+  string palace = 5;
+  string mood = 6;
+}
+
+message KarmicStep {
+  string type = 1;
+  string role = 2;
+  string star = 3;
+  string palace = 4;
+  string desc = 5;
+}
+
+message SanFangRole {
+  string role = 1;
+  string palace = 2;
+  string diagnosis = 3;
+}
+
+// ─── Records ───
+
+message BirthRecord {
+  string id = 1;
+  string name = 2;
+  int32 year = 3;
+  int32 month = 4;
+  int32 day = 5;
+  int32 hour = 6;
+  string gender = 7;
+  bool is_lunar = 8;
+  bool is_leap = 9;
+  bool is_dst = 10;
+  repeated string tags = 11;
+  string created_at = 12;
+}
+
+message ListRecordsRequest {}
+
+message ListRecordsResponse {
+  repeated BirthRecord records = 1;
+}
+
+message CreateRecordRequest {
+  string name = 1;
+  int32 year = 2;
+  int32 month = 3;
+  int32 day = 4;
+  int32 hour = 5;
+  string gender = 6;
+  bool is_lunar = 7;
+  bool is_leap = 8;
+  bool is_dst = 9;
+  repeated string tags = 10;
+}
+
+message CreateRecordResponse {
+  BirthRecord record = 1;
+}
+
+message DeleteRecordRequest {
+  string id = 1;
+}
+
+message DeleteRecordResponse {
+  bool success = 1;
+}
+
+// ─── Tags ───
+
+message Tag {
+  string id = 1;
+  string name = 2;
+  string color = 3;
+}
+
+message ListTagsRequest {}
+
+message ListTagsResponse {
+  repeated Tag tags = 1;
+}

@@ -28,6 +28,25 @@ go build ./... && go vet ./... && go fmt ./...
 # Run CLI
 go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10
 go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10 -gender female -json
+
+# Start server (REST :8081 + gRPC :50051)
+go run ./cmd/ziwei-server/main.go
+
+# Test REST API
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"year":1972,"month":6,"day":8,"hour":2,"gender":"male"}' \
+  http://localhost:8081/api/v1/calculate
+
+# Test gRPC (requires grpcurl)
+grpcurl -plaintext localhost:50051 list
+grpcurl -plaintext -d '{"year":1972,"month":6,"day":8,"hour":1,"gender":"male"}' \
+  localhost:50051 ziwei.v1.ZiweiService/Calculate
+grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListTags
+
+# Regenerate gRPC code (after modifying proto/ziwei.proto)
+protoc --go_out=pkg/api/grpc/v1 --go_opt=paths=source_relative \
+  --go-grpc_out=pkg/api/grpc/v1 --go-grpc_opt=paths=source_relative \
+  -I proto proto/ziwei.proto
 ```
 
 ---
@@ -38,15 +57,18 @@ go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10 -gender fema
 
 ```
 ziwei-zenith/
-├── cmd/ziwei-cli/          # CLI application
-│   └── main.go
+├── cmd/
+│   ├── ziwei-cli/          # CLI application
+│   └── ziwei-server/       # REST + gRPC server
+├── proto/
+│   └── ziwei.proto         # Protobuf service definition
 ├── pkg/
-│   ├── api/v1/             # JSON API types
+│   ├── api/v1/             # REST JSON API types
+│   ├── api/grpc/v1/        # Generated gRPC Go code
 │   ├── basis/              # Core definitions (stars, palaces, wuxing, etc.)
-│   │   ├── *.go            # One concern per file
-│   └── engine/             # Calculation engine
-│       ├── engine.go       # Main entry point + output formatting
-│       ├── *.go            # Algorithm modules
+│   ├── engine/             # Calculation engine
+│   └── service/            # Shared service layer (calculate + gRPC server)
+├── web/                    # React + TypeScript frontend
 └── go.mod
 ```
 
@@ -55,6 +77,7 @@ ziwei-zenith/
 - **One file per concern**: `stars.go`, `palaces.go`, `brightness.go`
 - **basis package**: All type definitions, constants, lookup tables
 - **engine package**: Algorithms and business logic
+- **service package**: Shared calculation logic, gRPC server implementation
 
 ### Types & Constants
 
@@ -159,7 +182,10 @@ index := (base + offset) % 12
 2. Add algorithms to `pkg/engine/` (calculation logic)
 3. Update `ZiweiChart` struct in `engine.go`
 4. Update `String()` method for output
-5. Test with CLI: `go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10`
+5. If adding new API fields: update `proto/ziwei.proto` and regenerate gRPC code
+6. If adding new API fields: update `pkg/service/grpc_server.go` conversion logic
+7. Test with CLI: `go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10`
+8. Test with server: `go run ./cmd/ziwei-server/main.go` then verify REST + gRPC
 
 ---
 

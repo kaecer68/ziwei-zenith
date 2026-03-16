@@ -1,5 +1,7 @@
-# Binaries
-ziwei-cli
+# Binaries (root-level only)
+/ziwei-cli
+/ziwei-server
+/main
 *.exe
 *.dll
 *.so
@@ -34,3 +36,15 @@ build/
 
 # Planning directory (can be removed for open source)
 .planning/
+
+# Runtime data
+records.json
+tags.json
+server.log
+
+# Agent/AI artifacts
+.agent/
+.antigravity/
+.windsurf/
+knowledge_extraction.md
+design-system/

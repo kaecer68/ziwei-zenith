@@ -3,44 +3,65 @@
 ## 1. Project Overview
 
 **Project Name**: Ziwei Zenith  
-**Project Type**: Go Library + CLI Tool  
+**Project Type**: Go Library + CLI + REST API + gRPC Service  
 **Core Functionality**: 紫微斗數 (Ziwei Douju) fate calculation engine - a complete Chinese astrology chart calculation system  
-**Target Users**: Chinese astrology practitioners, developers building fortune-telling applications
+**Target Users**: Chinese astrology practitioners, developers building fortune-telling applications, API consumers
 
 ## 2. Technical Architecture
 
 ### Technology Stack
 - **Language**: Go 1.25+
 - **Core Dependency**: lunar-zenith (for accurate stem-branch calculations)
-- **Output Formats**: Text (CLI), JSON (API)
+- **Frontend**: React + TypeScript + Vite + Framer Motion (Pro Max Refined)
+- **UI/UX Strategy**: **Input-First Architecture** (Landing directly on the Archive/Input Hub)
 - **Logic Baseline**: **K-Master Engine v4.0** (Aligns with verified JavaScript implementation)
+- **Development Standards**: 
+    - **Plugin**: **oh-my-opencode** (Sisyphus-based agentic workflow)
+    - **Skillset**: **Superpowers** (Workflow Acceleration: TDD, Brainstorming, Writing-Plans)
+    - **Methodology**: PRD-Driven Execution, Atomic Updates (PRD + Implementation + Skills)
+- **Security & Isolation**:
+    - **Hermetic Build**: 專案為物理隔離環境設計，禁止在 `pkg/` 中引入非授權的外部連線。
+    - **Independent Skills**: 雖然與 `lunar-zenith`, `bazi-zenith` 有輸入輸出連結，但所有紫微專屬邏輯（安星、四化等）必須嚴格封裝在 `ziwei-zenith` 目錄內，禁止與姊妹專案混淆。
+    - **Memory Pollution Prevention**: 定期檢查並清除 AI 產生的跨專案誤導信息，確保邏輯純淨。
 
 ### Project Structure
 ```
 ziwei-zenith/
-├── cmd/ziwei-cli/main.go       # CLI tool
+├── cmd/
+│   ├── ziwei-cli/main.go       # CLI tool
+│   └── ziwei-server/main.go    # REST + gRPC server
+├── proto/
+│   └── ziwei.proto             # Protobuf service definition
 ├── pkg/
-│   ├── api/v1/types.go         # JSON API types
+│   ├── api/
+│   │   ├── v1/types.go         # REST JSON API types
+│   │   └── grpc/v1/            # Generated gRPC Go code
 │   ├── basis/                  # Core data types & definitions
 │   │   ├── definitions.go      # Stem, Branch, Element, Pillar
 │   │   ├── stars.go            # 14 main stars (十四主星)
 │   │   ├── palaces.go         # 12 palaces (十二宮)
 │   │   ├── wuxing.go          # Five elements (五行), NaYin (納音)
 │   │   ├── auspicious.go      # Auspicious stars (六吉星)
-│   │   ├── malefic.go         # Malefic stars (六煞星)
-│   │   ├── secondary.go       # Secondary stars (丙級星)
+│   │   ├── malefic.go         # Malefic stars (六煢星)
+│   │   ├── secondary.go       # Secondary stars (丙級星 + 小星神煢)
 │   │   ├── transformation.go # Transformation stars (四化飛星)
+│   │   ├── lifecycle.go       # 十二長生 & 博士十二神
 │   │   ├── dayun.go           # DaYun/LiuNian/LiuYue/LiuRi types
 │   │   ├── pattern.go         # Pattern definitions
-│   │   └── brightness.go      # Star brightness (星曜亮度)
-│   └── engine/
-│       ├── engine.go          # Main ZiweiEngine
-│       ├── lifepalace.go      # Life palace calculation
-│       ├── starplacement.go   # Main star placement algorithm
-│       ├── assistant.go       # Assistant + transformation stars
-│       ├── dayun.go          # DaYun/LiuNian/LiuYue/LiuRi algorithms
-│       ├── pattern.go        # Pattern detection
-│       └── brightness.go     # Brightness calculation
+│   │   └── brightness.go      # Star brightness (7-level system)
+│   ├── engine/                 # Calculation engine
+│   │   ├── engine.go          # Main ZiweiEngine
+│   │   ├── lifepalace.go      # Life palace calculation
+│   │   ├── starplacement.go   # Main star placement algorithm
+│   │   ├── assistant.go       # Assistant + secondary stars placement
+│   │   ├── lifecycle.go       # 十二長生 & 博士十二神 algorithms
+│   │   ├── dayun.go          # DaYun/LiuNian/LiuYue/LiuRi algorithms
+│   │   ├── pattern.go        # Pattern detection
+│   │   └── brightness.go     # Brightness calculation
+│   └── service/                # Shared service layer
+│       ├── calculate.go       # Unified calculation logic
+│       └── grpc_server.go     # gRPC server implementation
+├── web/                        # React + TypeScript frontend
 └── go.mod
 ```
 
@@ -48,10 +69,13 @@ ziwei-zenith/
 
 ### 3.1 Core Calculation
 - ✅ **十四主星 (14 Main Stars)**: 紫微、天府、天機、太陽、武曲、天同、廉貞、巨門、天相、天梁、七殺、破軍、太陰、貪狼
-- ✅ **六吉星 (6 Auspicious Stars)**: 左輔、右弼、文昌、文曲、天魁、天鉞
-- ✅ **六煞星 (6 Malefic Stars)**: 擎羊、陀羅、火星、鈴星、地空、地劫
+- ✅ **六吉星 (6 Auspicious Stars)**: 左輔、右弼、文昌、文曲、天魁、天鉅
+- ✅ **六煢星 (6 Malefic Stars)**: 擎羊、陀羅、火星、鈴星、地空、地劫
 - ✅ **祿存、天馬 (LuCun & Tianma)**
-- ✅ **丙級星 (12 Secondary Stars)**: 紅鸞、天喜、孤辰、寡宿、龍池、鳳閣、天刑、天姚、解神、天巫、三台、八座
+- ✅ **丙級星 (Secondary Stars)**: 紅鹎、天喜、孤辰、寡宿、龍池、鳳閣、天刑、天姚、解神、天巫、三台、八座、咸池、天月、陰煢、台輔、封誥
+- ✅ **小星神煢 (Minor Stars)**: 恩光、天貴、天官、天福、天哭、天虛、蓑廉、破碎、華蓋、天才、天壽、天德、月德、天傷、天使、天空、劫煢
+- ✅ **十二長生 (12 Life Stages)**: 長生、沐浴、冠帶、臨官、帝旺、衰、病、死、墓、絕、胎、養
+- ✅ **博士十二神 (12 PhD Stars)**: 博士、力士、青龍、小耗、將軍、奎書、飛廉、喜神、病符、大耗、伏兵、官府
 - ✅ **四化飛星 (Transformation Stars)**: 化祿、化權、化科、化忌
 
 ### 3.2 Luck Cycles
@@ -61,17 +85,29 @@ ziwei-zenith/
 - ✅ **流日 (LiuRi)**: Daily luck (Branch-step method)
 - ✅ **疊併感應 (Resonance)**: Detecting clashing 'Ji' or 'Lu' between cycles.
 
-### 3.3 Chart Analysis
-- ✅ **命宮、身宮 (Life Palace & Body Palace)**
-- ✅ **五行局 (Wuxing Ju)**: 金木水火土各局
-- ✅ **納音五行 (NaYin)**
-- ✅ **格局判斷 (Pattern Detection)**: 日月反背、祿馬交馳等
-- ✅ **星曜亮度 (Star Brightness)**: 廟、旺、落、陷
+### 3.3 Chart Analysis & Interpretation
+- ✅ **十四主星 (14 Main Stars)**: 含廟旺利陷判斷
+- ✅ **格局判斷 (Pattern Detection)**: 12+ 種經典格局（機月同梁、石中隱玉等）
+- ✅ **深度解盤 (Deep Interpretation)**:
+    - **祿隨忌走 (Karmic Flow)**: 因果鏈條敘事
+    - **多校並行 (Multi-School)**: 三合、四化、欽天三位一體解讀
+    - **來因宮飛化 (Origin Fly-Hua)**: 靈魂發射源分析
+    - **星曜演化 (Star Evolution)**: 文化溯源與修煉建議
+- ✅ **時空感應 (Temporal Resonance)**: 疊併感應警告
 
-### 3.4 Input/Output
+### 3.4 Service Layer
+- ✅ **REST API** (port 8081): Full CRUD for records, tags, and chart calculation
+- ✅ **gRPC Service** (port 50051): Protobuf-defined service with 5 RPCs (Calculate, ListRecords, CreateRecord, DeleteRecord, ListTags)
+- ✅ **gRPC Reflection**: 支援 grpcurl 動態探索
+- ✅ **Shared Service Layer**: `pkg/service/` 統一封裝計算邏輯，REST 與 gRPC 共用
+
+### 3.5 Input/Output
 - ✅ **Solar Date Calculation**: Convert Gregorian date to lunar date using lunar-zenith
 - ✅ **Time System**: 支持時辰起盤 (12時辰制)
-- ✅ **Gender Support**: 男命/女命
+- ✅ **Gender Support**: 男命/女命 (配合 乾造/坤造 專業標識)
+- ✅ **DST Intelligence**: 內建 1945-1991 台灣/大陸夏令時歷史指南與自動修正邏輯
+- ✅ **UI Input Hub**: 高密度單行輸入設計，微型標籤化 (Micro-labels)，極致縮減輸入層級
+- ✅ **Record Management**: 命盤紀錄庫與分類標籤（家人/親戚/朋友/同事/客戶）篩選
 - ✅ **Text Output**: Human-readable console output
 - ✅ **JSON Output**: `-json` flag for API integration
 
@@ -107,11 +143,12 @@ ziwei-zenith/
 - **流月**: 採用「斗君起月」法。自流年命宮起正月，逆數生月，再順數生時（正月點），隨後依農曆月份順行。
 - **時空感應**: 自動檢測「歲運疊併」。當流年/月/日三層四化與本命四化產生重疊（如雙重化忌）時，觸發警告邏輯。
 
-### 4.5 Star Brightness (6-Level System)
+### 4.5 Star Brightness (7-Level System)
 | 等級 | Description |
 |------|-------------|
 | 廟 (Ming) | Highest influence (宮位與星曜五行極其契合) |
 | 旺 (Wang) | Strong influence |
+| 得 (De) | Good influence (次旺，能量充泛) |
 | 利 (Li) | Moderate influence |
 | 平 (Ping) | Neutral influence |
 | 陷 (Xian) | Low influence (能量受挫) |
@@ -119,19 +156,37 @@ ziwei-zenith/
 
 ## 5. Usage
 
-### CLI
+### REST API Server
 ```bash
-# Basic usage
-ziwei-cli -year 1990 -month 6 -day 15 -hour 10
+# Start server (REST :8081 + gRPC :50051)
+go run ./cmd/ziwei-server/main.go
 
-# With gender
-ziwei-cli -year 1990 -month 6 -day 15 -hour 10 -gender female
+# REST: Calculate chart
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"year":1972, "month":6, "day":8, "hour":2, "gender":"male"}' \
+  http://localhost:8081/api/v1/calculate
 
-# JSON output
-ziwei-cli -year 1990 -month 6 -day 15 -hour 10 -json
+# REST: List records
+curl http://localhost:8081/api/v1/records
 
-# Custom location
-ziwei-cli -year 1990 -month 6 -day 15 -hour 10 -lat 25.033 -lon 121.565
+# REST: List tags
+curl http://localhost:8081/api/v1/tags
+```
+
+### gRPC Service
+```bash
+# List services
+grpcurl -plaintext localhost:50051 list
+
+# Calculate chart
+grpcurl -plaintext -d '{"year":1972,"month":6,"day":8,"hour":1,"gender":"male"}' \
+  localhost:50051 ziwei.v1.ZiweiService/Calculate
+
+# List records
+grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListRecords
+
+# List tags
+grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListTags
 ```
 
 ### Library
@@ -140,17 +195,16 @@ package main
 
 import (
     "fmt"
-    "github.com/kaecer68/ziwei-zenith/pkg/engine"
+    "github.com/kaecer68/ziwei-zenith/pkg/service"
 )
 
 func main() {
-    e := engine.New()
-    chart, _ := e.BuildChart(engine.BirthInfo{
-        SolarYear:  1990,
-        SolarMonth: 6,
-        SolarDay:   15,
-        Hour:       10,
-        Gender:     "male",
+    chart, _ := service.Calculate(service.CalculateInput{
+        Year:   1990,
+        Month:  6,
+        Day:    15,
+        Hour:   10,
+        Gender: "male",
     })
     fmt.Println(chart)
 }
@@ -166,54 +220,79 @@ func main() {
 - `Wuxing`: 五行 (木火土金水)
 - `NaYin`: 納音五行
 
+
 ### Output Structure
 ```json
 {
   "yearPillar": "庚午",
-  "monthPillar": "癸未", 
-  "dayPillar": "辛亥",
-  "hourPillar": "癸巳",
-  "wuxingJu": "水二局",
-  "naYin": "己亥",
-  "lifePalace": "田宅宮",
-  "bodyPalace": "僕役宮",
-  "palaces": {...},
-  "stars": {...},
-  "patterns": [...],
-  "starBrightness": [...],
-  "dayun": [...],
-  "liunian": [...],
-  "liuyue": [...],
-  "liuri": [...]
+  "interpretation": {
+    "summary": "...",
+    "karmic_narrative": [...],
+    "san_fang_diagnosis": [...],
+    "star_details": [...],
+    "origin_fly_hua": {...},
+    "classic_patterns": [...]
+  }
 }
 ```
 
-## 7. Future Enhancements
+## 7. Acceptance Criteria (v0.1.0)
+- [x] 輸入：農曆出生年、月、日、時 → 輸出：十四主星分布
+- [x] 命宮、身宮定位正確
+- [x] 十二宮位排列正確
+- [x] 十四主星安星法正確實現
+- [x] JSON API 可用 (cmd/ziwei-server)
+- [x] CLI 工具可執行排盤 (cmd/ziwei-cli)
+- [x] 單元測試覆蓋核心算法 (TDD Implementation Complete)
+- [x] 深度解盤測試驗證通過
+- [x] 安全性審計完成 (隔離性與無污染驗證)
+- [x] **UI/UX Pro Max 重構完成**: 高密度輸入、玻璃擬態視覺、DST 精準修正引導
+- [x] **落地策略優化**: App 啟動默認進入「檔案館/輸入頁」，實現「即刻輸入，即刻排盤」
+
+## 8. Future Enhancements
 
 ### Phase 2 (Planned)
 - [ ] 小限 (Xiao Xian) calculation
 - [ ] 鐵板神數 (Tieban Shenshu) integration
 - [ ] 更多格局判斷
 - [ ] 星曜組合分析
-- [ ] Web API server
+- [ ] gRPC-Gateway (REST 自動代理 gRPC)
 
 ### Phase 3 (Roadmap)
-- [ ] GUI Application
 - [ ] Mobile SDK
 - [ ] Birth chart visualization
+- [ ] Multi-tenant SaaS deployment
 
-## 8. Dependencies
+## 9. Dependencies
 
 - **lunar-zenith**: High-precision Chinese lunar calendar library
   - Provides accurate 天干地支 (Stem-Branch) calculations
   - Handles 閏月, 節氣, and exact solar-lunar conversion
+- **google.golang.org/grpc**: gRPC framework for Go
+- **google.golang.org/protobuf**: Protocol Buffers for Go
 
-## 9. References
+## 10. Calibration History
+
+以下校正均基於專業盤面對標驗證（參考命例：1972-06-08 01:00 男命）：
+
+| 項目 | 修正內容 |
+|------|----------|
+| 天傷/天使 | 落宮偏移修正（offset -8→-7, -6→-5） |
+| 蓑廉 | 查表改公式 `(yearBranch+8)%12` |
+| 破碎 | 修正三組映射表（子午卯酉→巳、丑辰未戌→丑、寅巳申亥→酉） |
+| 亮度系統 | 6級→7級，新增「得」等級，重寫 14 主星完整亮度表 |
+| 日柱計算 | 修正 UTC 偏移問題，改用本地時間 JD 計算日柱 |
+| 新增星曜 | 天空、劫煢、恩光、天貴、天官、天福、天哭、天虛、華蓋、破碎、蓑廉、天才、天壽、天德、月德、天傷、天使 |
+| 新增系統 | 十二長生、博士十二神 |
+| 服務協定 | 新增 gRPC 服務（port 50051），與 REST 雙協定運行 |
+| 前端標籤 | 記錄庫分類標籤功能完善（家人/親戚/朋友/同事/客戶） |
+
+## 11. References
 
 - 《紫微斗數全書》
 - 《紫微斗數命理學》
 - 《現代紫微斗數論命寶典》
 
-## 10. License
+## 12. License
 
 MIT License

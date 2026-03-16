@@ -8,63 +8,72 @@ import (
 )
 
 type Interpretation struct {
-	OriginPalaceAnalysis string
-	KarmicNarrative      []KarmicStep
-	SanFangDiagnosis     []SanFangRole
-	StarDetails          []DeepStarAnalysis
-	OriginFlyHua         FlyHuaAnalysis
-	TemporalResonance    []ResonancePoint
-	Summary              string
+	OriginPalaceAnalysis string             `json:"origin_palace_analysis"`
+	KarmicNarrative      []KarmicStep       `json:"karmic_narrative"`
+	SanFangDiagnosis     []SanFangRole      `json:"san_fang_diagnosis"`
+	StarDetails          []DeepStarAnalysis `json:"star_details"`
+	OriginFlyHua         FlyHuaAnalysis     `json:"origin_fly_hua"`
+	TemporalResonance    []ResonancePoint   `json:"temporal_resonance"`
+	Summary              string             `json:"summary"`
+	CharacterTraits      string             `json:"character_traits"`
+	ClassicPatterns      []string           `json:"classic_patterns"`
 }
 
 type KarmicStep struct {
-	Type   string // 祿, 權, 科, 忌
-	Role   string // 緣起, 緣力, 緣續, 緣滅
-	Star   string
-	Palace string
-	Desc   string
+	Type   string `json:"type"` // 祿, 權, 科, 忌
+	Role   string `json:"role"` // 緣起, 緣力, 緣續, 緣滅
+	Star   string `json:"star"`
+	Palace string `json:"palace"`
+	Desc   string `json:"desc"`
 }
 
 type SanFangRole struct {
-	Role      string // 本宮, 對宮, 氣數位, 財帛位
-	Palace    string
-	Diagnosis string
-	Stars     []string
+	Role      string   `json:"role"` // 本宮, 對宮, 氣數位, 財帛位
+	Palace    string   `json:"palace"`
+	Diagnosis string   `json:"diagnosis"`
+	Stars     []string `json:"stars"`
 }
 
 type DeepStarAnalysis struct {
-	Name         string
-	Verse        string
-	Positive     string
-	Negative     string
-	Remedy       string
-	Evolution    string
-	Brightness   string
+	Name       string `json:"name"`
+	Verse      string `json:"verse"`
+	Positive   string `json:"positive"`
+	Negative   string `json:"negative"`
+	Remedy     string `json:"remedy"`
+	Evolution  string `json:"evolution"`
+	Brightness string `json:"brightness"`
 }
 
 type FlyHuaAnalysis struct {
-	FromPalace string
-	Stem       string
-	Stages     []FlyStage
+	FromPalace string     `json:"from_palace"`
+	Stem       string     `json:"stem"`
+	Stages     []FlyStage `json:"stages"`
 }
 
 type FlyStage struct {
-	Type   string
-	Effect string
-	Star   string
-	Target string
-	Motive string
-	Action string
-	Trap   string
+	Type            string          `json:"type"`
+	Effect          string          `json:"effect"`
+	Star            string          `json:"star"`
+	Target          string          `json:"target"`
+	Motive          string          `json:"motive"`
+	Action          string          `json:"action"`
+	Trap            string          `json:"trap"`
+	Interpretations MultiSchoolView `json:"interpretations"`
+}
+
+type MultiSchoolView struct {
+	SanHe   string `json:"sanhe"`
+	SiHua   string `json:"sihua"`
+	QinTian string `json:"qintian"`
 }
 
 type ResonancePoint struct {
-	Layer string // 流年, 流月, 流日
-	Type  string // 祿, 忌
-	Star  string
-	Natal string // 本命化XX
-	Palace string
-	Mood   string
+	Layer  string `json:"layer"` // 流年, 流月, 流日
+	Type   string `json:"type"`  // 祿, 忌
+	Star   string `json:"star"`
+	Natal  string `json:"natal"` // 本命化XX
+	Palace string `json:"palace"`
+	Mood   string `json:"mood"`
 }
 
 func GenerateInterpretation(chart *ZiweiChart) Interpretation {
@@ -90,8 +99,14 @@ func GenerateInterpretation(chart *ZiweiChart) Interpretation {
 	// 6. Star Deep Analysis for Life Palace
 	interp.StarDetails = buildStarDetails(chart, chart.LifePalace.MingGong)
 
-	// 7. Summary
-	interp.Summary = buildSummary(interp.KarmicNarrative)
+	// 7. Classic Patterns
+	interp.ClassicPatterns = detectPatterns(chart, chart.LifePalace.MingGong)
+
+	// 8. Character Analysis
+	interp.CharacterTraits = buildCharacterTraits(chart)
+
+	// 9. Summary
+	interp.Summary = buildSummary(interp.KarmicNarrative, interp.CharacterTraits)
 
 	return interp
 }
@@ -105,12 +120,25 @@ func buildKarmicStory(chart *ZiweiChart) []KarmicStep {
 	}
 
 	for i := range steps {
+		transType := basis.TransformationType(i)
 		for b, stars := range chart.TransformedStars {
 			for _, s := range stars {
 				if ts, ok := s.(basis.TransformedStar); ok {
-					if int(ts.Transformation) == i {
+					if ts.Transformation == transType {
 						steps[i].Star = ts.StarName
 						steps[i].Palace = chart.Palaces[b].String()
+
+						// Add deeper meaning based on philosophy_core
+						switch transType {
+						case basis.TransLu:
+							steps[i].Desc = fmt.Sprintf("【%s】代表緣分的前世資助，這份資源由「%s」承載，是今生最好的發力點。", ts.StarName, steps[i].Palace)
+						case basis.TransQuan:
+							steps[i].Desc = fmt.Sprintf("【%s】是您解決問題的「心機方法」，入於「%s」位，暗示您必須在此領域展現掌控力。", ts.StarName, steps[i].Palace)
+						case basis.TransKe:
+							steps[i].Desc = fmt.Sprintf("【%s】是安全感與轉機的來源。當人生卡關時，「%s」的智慧與人脈是最好的緩衝。", ts.StarName, steps[i].Palace)
+						case basis.TransJi:
+							steps[i].Desc = fmt.Sprintf("【%s】是今生的「使命黑洞」。您對「%s」的過度執念或恐懼，是靈魂必須償還並昇華的課題。", ts.StarName, steps[i].Palace)
+						}
 					}
 				}
 			}
@@ -121,8 +149,7 @@ func buildKarmicStory(chart *ZiweiChart) []KarmicStep {
 
 func buildResonance(chart *ZiweiChart) []ResonancePoint {
 	var points []ResonancePoint
-	
-	// Check for Natal Ji vs Temporal Ji intersections
+
 	checkJi := func(layerName string, layerMap map[basis.Branch][]interface{}) {
 		for b, stars := range layerMap {
 			var layerJiStar string
@@ -131,9 +158,8 @@ func buildResonance(chart *ZiweiChart) []ResonancePoint {
 					layerJiStar = ts.StarName
 				}
 			}
-			
+
 			if layerJiStar != "" {
-				// Search for Natal Ji in same palace
 				for _, ns := range chart.TransformedStars[b] {
 					if nts, ok := ns.(basis.TransformedStar); ok && nts.Transformation == basis.TransJi {
 						points = append(points, ResonancePoint{
@@ -146,7 +172,6 @@ func buildResonance(chart *ZiweiChart) []ResonancePoint {
 						})
 					}
 				}
-				// Search for Natal Lu in same palace (Lu-Ji meeting)
 				for _, ns := range chart.TransformedStars[b] {
 					if nts, ok := ns.(basis.TransformedStar); ok && nts.Transformation == basis.TransLu {
 						points = append(points, ResonancePoint{
@@ -177,8 +202,9 @@ func buildFlyHuaAnalysis(chart *ZiweiChart, fromBranch basis.Branch) FlyHuaAnaly
 		return FlyHuaAnalysis{}
 	}
 
+	srcName := chart.Palaces[fromBranch].String()
 	analysis := FlyHuaAnalysis{
-		FromPalace: chart.Palaces[fromBranch].String(),
+		FromPalace: srcName,
 		Stem:       stem.String(),
 	}
 
@@ -197,15 +223,24 @@ func buildFlyHuaAnalysis(chart *ZiweiChart, fromBranch basis.Branch) FlyHuaAnaly
 	for i, t := range types {
 		starName := hua[i]
 		targetPalace := findStarLocation(chart, starName)
-		
-		analysis.Stages = append(analysis.Stages, FlyStage{
+
+		stage := FlyStage{
 			Type:   t,
 			Star:   starName,
 			Target: targetPalace,
 			Motive: themes[t].motive,
 			Action: themes[t].action,
 			Trap:   themes[t].trap,
-		})
+		}
+
+		// Multi-school data (Logic from master_engine_v4.js)
+		stage.Interpretations = MultiSchoolView{
+			SanHe:   fmt.Sprintf("【三合派】%s之%s氣飛入%s，代表該宮位對目標宮位的實質拉動。", srcName, t, targetPalace),
+			SiHua:   fmt.Sprintf("【飛星四化】「我」主動將%s的能量投射到%s，這是一種主觀的執著與互動。", t, targetPalace),
+			QinTian: fmt.Sprintf("【欽天門】前世因今世果，%s星在%s宮展現先天本命之必然軌跡與欠債關係。", starName, targetPalace),
+		}
+
+		analysis.Stages = append(analysis.Stages, stage)
 	}
 	return analysis
 }
@@ -218,7 +253,6 @@ func findStarLocation(chart *ZiweiChart, starName string) string {
 			}
 		}
 	}
-	// Check assistant stars
 	for b, stars := range chart.AssistantStars {
 		for _, s := range stars {
 			if strer, ok := s.(interface{ String() string }); ok {
@@ -285,6 +319,72 @@ func synthesizeDiagnosis(palaceName string, stars []string, roleLabel string) st
 	return fmt.Sprintf("由輔星「%s」主導，呈現多元且微觀的變動氣場。", strings.Join(stars, "、"))
 }
 
+func detectPatterns(chart *ZiweiChart, target basis.Branch) []string {
+	var patterns []string
+	idx := int(target)
+	sanFangIndices := []int{idx, (idx + 4) % 12, (idx + 8) % 12, (idx + 6) % 12}
+
+	allStars := make(map[string]bool)
+	for _, i := range sanFangIndices {
+		for _, s := range getStarNames(chart, basis.Branch(i)) {
+			allStars[s] = true
+		}
+	}
+
+	lifeStars := getStarNames(chart, target)
+	hasStar := func(name string) bool {
+		for _, s := range lifeStars {
+			if s == name {
+				return true
+			}
+		}
+		return false
+	}
+
+	// 1. 機月同梁
+	if allStars["天機"] && allStars["太陰"] && allStars["天同"] && allStars["天梁"] {
+		patterns = append(patterns, "【機月同梁格】機月同梁作吏人。主幕僚、辦公室行政、制度內發展之命。")
+	}
+
+	// 2. 紫府同宮
+	if hasStar("紫微") && hasStar("天府") {
+		patterns = append(patterns, "【紫府同宮格】紫府同宮，終身福厚。極高基調的生命格局，天生具備穩定的資源支撐。")
+	}
+
+	// 3. 殺破狼
+	if allStars["七殺"] && allStars["破軍"] && allStars["貪狼"] {
+		patterns = append(patterns, "【殺破狼格】變動之星系，一生多震盪與革新。")
+	}
+
+	// 4. 石中隱玉 (子午巨門)
+	if hasStar("巨門") && (target == basis.BranchZi || target == basis.BranchWu) {
+		patterns = append(patterns, "【石中隱玉格】子午巨門，石中隱玉。需磨礪（祿科引動）方能顯貴，不宜過早出位。")
+	}
+
+	// 5. 雄宿乾元 (未申廉貞)
+	if hasStar("廉貞") && (target == basis.BranchWei || target == basis.BranchShen) {
+		patterns = append(patterns, "【雄宿乾元格】廉貞在未申宮守命，展示高度的外交手腕與開創力。")
+	}
+
+	// 6. 壽星入廟 (梁居午位)
+	if hasStar("天梁") && target == basis.BranchWu {
+		patterns = append(patterns, "【壽星入廟格】梁居午位，官資清顯。人格高潔，長壽且具備崇高地位。")
+	}
+
+	// 7. 英星入廟 (子午破軍)
+	if hasStar("破軍") && (target == basis.BranchZi || target == basis.BranchWu) {
+		patterns = append(patterns, "【英星入廟格】子午破軍，加官進祿。具備強大的開創力與顛覆魄力。")
+	}
+
+	// 8. 日月併明
+	if allStars["太陽"] && allStars["太陰"] {
+		// Simplified check for brightening
+		patterns = append(patterns, "【日月併明格】日月並明，佐九重於堯殿。代表得位返照，貴人顯赫。")
+	}
+
+	return patterns
+}
+
 func buildStarDetails(chart *ZiweiChart, branch basis.Branch) []DeepStarAnalysis {
 	var result []DeepStarAnalysis
 	stars := getStarNames(chart, branch)
@@ -317,10 +417,31 @@ func getStarNames(chart *ZiweiChart, b basis.Branch) []string {
 	return names
 }
 
-func buildSummary(steps []KarmicStep) string {
-	if steps[0].Palace != "" && steps[3].Palace != "" {
-		return fmt.Sprintf("命運公式：緣起於【%s】之%s，緣滅於【%s】之%s。所得終為債，此為祿隨忌走之必然。",
+func buildSummary(steps []KarmicStep, traits string) string {
+	formula := "能量循環解析中..."
+	if len(steps) >= 4 && steps[0].Palace != "" && steps[3].Palace != "" {
+		formula = fmt.Sprintf("緣起於【%s】之%s，緣滅於【%s】之%s。",
 			steps[0].Palace, steps[0].Star, steps[3].Palace, steps[3].Star)
 	}
-	return "能量循環尚不完整，需進一步推演。"
+	return fmt.Sprintf("%s %s", traits, formula)
+}
+
+func buildCharacterTraits(chart *ZiweiChart) string {
+	stars := getStarNames(chart, chart.LifePalace.MingGong)
+	if len(stars) == 0 {
+		return "您的命盤呈現出一種極具彈性的能量場，容易受環境影響而展現多樣面貌。"
+	}
+
+	var mainTraits []string
+	for _, s := range stars {
+		if e, ok := StarEssenceTable[s]; ok {
+			mainTraits = append(mainTraits, e.Trait)
+		}
+	}
+
+	if len(mainTraits) > 0 {
+		return fmt.Sprintf("您的生命底色以「%s」為主旋律，展現出獨特的精神海拔。", strings.Join(mainTraits, "、"))
+	}
+
+	return "您具備極強的適應力，命宮格局暗示了一種深藏不露的生命張力。"
 }

@@ -164,20 +164,42 @@ func (n NaYin) String() string {
 	return string(n)
 }
 
-// CalcNaYin returns the NaYin string for a given stem and branch
+// CalcNaYin returns the NaYin string for a given stem and branch using the 60 Jiazi formula
 func CalcNaYin(s Stem, b Branch) NaYin {
-	// Simple lookup (abbreviated)
-	// In practice, this would be a full table for 60 Jiazi
-	// Let's implement the basic one for 1972-06-08 (Ji-Si)
-	table := map[string]string{
-		"己巳": "大林木",
-		"壬子": "桑柘木",
-		"乙丑": "海中金",
-		"丙午": "天河水",
+	// Formula: (StemWeight + BranchWeight) mod 5
+	// Stem weights: Jia/Yi=1, Bing/Ding=2, Wu/Ji=3, Geng/Xin=4, Ren/Gui=5
+	// Branch weights: Zi/Chou/Wu/Wei=1, Yin/Mao/Shen/You=2, Chen/Si/Xu/Hai=3
+
+	sWeight := ((int(s) / 2) % 5) + 1
+	bWeight := (int(b)/2)%3 + 1
+
+	// Adjustment for Geng/Xin if needed or Ren/Gui?
+	// No, the standard formula is:
+	// Jia=1, Yi=1, Bing=2, Ding=2, Wu=3, Ji=3, Geng=4, Xin=4, Ren=5, Gui=5
+	// Zi=1, Chou=1, Yin=2, Mao=2, Chen=3, Si=3, Wu=1, Wei=1, Shen=2, You=2, Xu=3, Hai=3
+
+	val := (sWeight + bWeight) % 5
+	if val == 0 {
+		val = 5
 	}
+
+	// Detailed 60 Jiazi Table
+	table := map[string]string{
+		"甲子": "海中金", "乙丑": "海中金", "丙寅": "爐中火", "丁卯": "爐中火", "戊辰": "大林木", "己巳": "大林木",
+		"庚午": "路旁土", "辛未": "路旁土", "壬申": "劍鋒金", "癸酉": "劍鋒金", "甲戌": "山頭火", "乙亥": "山頭火",
+		"丙子": "澗下水", "丁丑": "澗下水", "戊寅": "城頭土", "己卯": "城頭土", "庚辰": "白蠟金", "辛巳": "白蠟金",
+		"壬午": "楊柳木", "癸未": "楊柳木", "甲申": "泉中水", "乙酉": "泉中水", "丙戌": "屋上土", "丁亥": "屋上土",
+		"戊子": "霹靂火", "己丑": "霹靂火", "庚寅": "松柏木", "辛卯": "松柏木", "壬辰": "長流水", "癸巳": "長流水",
+		"甲午": "砂中金", "乙未": "砂中金", "丙申": "山下火", "丁酉": "山下火", "戊戌": "平地木", "己亥": "平地木",
+		"庚子": "壁上土", "辛丑": "壁上土", "壬寅": "金箔金", "癸卯": "金箔金", "甲辰": "覆燈火", "乙巳": "覆燈火",
+		"丙午": "天河水", "丁未": "天河水", "戊申": "大驛土", "己酉": "大驛土", "庚戌": "釵釧金", "辛亥": "釵釧金",
+		"壬子": "桑柘木", "癸丑": "桑柘木", "甲寅": "大溪水", "乙卯": "大溪水", "丙辰": "沙中土", "丁巳": "沙中土",
+		"戊午": "天上火", "己未": "天上火", "庚申": "石榴木", "辛酉": "石榴木", "壬戌": "大海水", "癸亥": "大海水",
+	}
+
 	key := s.String() + b.String()
-	if val, ok := table[key]; ok {
-		return NaYin(val)
+	if v, ok := table[key]; ok {
+		return NaYin(v)
 	}
 	return NaYin("未知")
 }
