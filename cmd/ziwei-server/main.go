@@ -57,14 +57,22 @@ func main() {
 	http.HandleFunc("/api/v1/tags", tagsHandler)
 
 	port := "8081"
-	fmt.Printf("Ziwei Zenith REST API on :%s | gRPC on :50051\n", port)
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50053"
+	}
+	fmt.Printf("Ziwei Zenith REST API on :%s | gRPC on :%s\n", port, grpcPort)
 	if err := http.ListenAndServe(":"+port, corsMiddleware(http.DefaultServeMux)); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func startGRPCServer() {
-	lis, err := net.Listen("tcp", ":50051")
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50053"
+	}
+	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
 		log.Fatalf("gRPC listen failed: %v", err)
 	}
@@ -95,7 +103,7 @@ func startGRPCServer() {
 	pb.RegisterZiweiServiceServer(s, grpcSvc)
 	reflection.Register(s)
 
-	log.Printf("gRPC server listening on :50051")
+	log.Printf("gRPC server listening on :%s", grpcPort)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("gRPC serve failed: %v", err)
 	}
