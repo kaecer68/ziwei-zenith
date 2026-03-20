@@ -69,6 +69,9 @@ ziwei-cli -year 1990 -month 6 -day 15 -hour 10 -json
 To ensure the accuracy of the calculation engine, you can run the suite of unit tests:
 
 ```bash
+# Run all project tests
+go test ./...
+
 # Run all engine tests
 go test -v ./pkg/engine/...
 
@@ -77,12 +80,21 @@ go test -v pkg/engine/lifepalace_test.go pkg/engine/lifepalace.go
 go test -v pkg/engine/starplacement_test.go pkg/engine/starplacement.go
 ```
 
+Current status: unit tests are maintained mainly in `pkg/engine`, while other packages are validated via build/vet checks.
+
 The test suite covers:
 - **Life/Body Palace** placement rules.
 - **Main Stars** (14) placement.
 - **Assistant/Malefic Stars** placement.
 - **NaYin & Five Elements** logic.
 - **Transformation (Si Hua)** logic.
+
+Recommended quick verification:
+
+```bash
+go build ./...
+go vet ./...
+```
 
 ### 其他 CLI 選項
 
@@ -93,19 +105,31 @@ ziwei-cli -year 1990 -month 6 -day 15 -hour 10 -lat 25.033 -lon 121.565
 
 ### REST API + gRPC Server
 
+> REST 路徑約定：目前以 `/api/v1/*` 為主要路徑；`/v1/ziwei/calculate` 僅保留為契約中的舊版兼容標記。
+>
+> REST Port 同步規則：優先使用環境變數 `REST_PORT`，未設置時會從 `contracts/openapi/ziwei-zenith.yaml` 的 `servers.url` 解析 port。
+
 ```bash
 # 啟動伺服器 (REST :8081 + gRPC :50051)
 go run ./cmd/ziwei-server/main.go
 
 # REST: 計算命盤
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"year":1972, "month":6, "day":8, "hour":2, "gender":"male"}' \
+  -d '{"year":1972, "month":6, "day":8, "hour":2, "minute":0, "gender":"male", "is_lunar":false, "is_leap":false, "is_dst":false, "longitude":121.565}' \
   http://localhost:8081/api/v1/calculate | jq .
 
 # REST: 列出紀錄 / 標籤
 curl http://localhost:8081/api/v1/records
 curl http://localhost:8081/api/v1/tags
 ```
+
+### Runtime Port 契約同步
+
+- **單一真相檔**：`contracts/runtime/ports.env`（由 destiny-contracts 維護）
+- **同步腳本**：每次開發前必跑 `make sync-contracts`
+- **驗證腳本**：提交前、PR/CI 會跑 `make verify-contracts`，若 `.env.ports` 未與契約同步會直接 fail
+- **本地 port 衝突**：若執行 sync/verify 時提示 port 已被占用，使用 `make dev-clean` 釋放資源後再試
+- **禁止手改 `.env.ports`**：此檔由 `scripts/sync-contracts.sh` 產生，請勿人工編輯；任何變更需從契約 repo 更新後再同步
 
 ### gRPC 服務調用
 
