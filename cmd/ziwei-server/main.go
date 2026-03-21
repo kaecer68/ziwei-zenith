@@ -84,13 +84,27 @@ func resolveRESTPort() (string, error) {
 	return port, nil
 }
 
-const defaultGRPCPort = "50053"
-
 func getGRPCPort() string {
+	// Priority: GRPC_PORT env > ZIWEI_GRPC_PORT env > .env.ports > fail
 	if port := strings.TrimSpace(os.Getenv("GRPC_PORT")); port != "" {
 		return port
 	}
-	return defaultGRPCPort
+	if port := strings.TrimSpace(os.Getenv("ZIWEI_GRPC_PORT")); port != "" {
+		return port
+	}
+	// Try to read from .env.ports if it exists
+	if data, err := os.ReadFile(".env.ports"); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "GRPC_PORT=") || strings.HasPrefix(line, "ZIWEI_GRPC_PORT=") {
+				if port := strings.TrimSpace(strings.SplitN(line, "=", 2)[1]); port != "" {
+					return port
+				}
+			}
+		}
+	}
+	// No fallback - require explicit configuration
+	log.Fatal("GRPC_PORT or ZIWEI_GRPC_PORT must be set, or .env.ports must exist with GRPC_PORT defined")
+	return "" // unreachable
 }
 
 func restPortFromContract(path string) (string, error) {
