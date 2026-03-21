@@ -41,6 +41,7 @@ build/
 records.json
 tags.json
 server.log
+# .env.ports is auto-generated but tracked for CI verification
 
 # Agent/AI artifacts
 .agent/
