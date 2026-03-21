@@ -10,8 +10,14 @@ jobs:
   verify-contracts:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout ziwei-zenith
         uses: actions/checkout@v4
+
+      - name: Checkout destiny-contracts
+        uses: actions/checkout@v4
+        with:
+          repository: kaecer68/destiny-contracts
+          path: destiny-contracts
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -19,6 +25,8 @@ jobs:
           go-version-file: go.mod
 
       - name: Verify contract sync
+        env:
+          CONTRACT_PORTS_FILE: ${{ github.workspace }}/destiny-contracts/runtime/ports.env
         run: |
           chmod +x scripts/sync-contracts.sh
           make verify-contracts

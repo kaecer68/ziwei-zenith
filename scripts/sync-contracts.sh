@@ -51,7 +51,6 @@ render_target_file() {
 
   cat <<EOF
 # 此檔案由 scripts/sync-contracts.sh 生成，請勿手動修改
-# 契約來源：$CONTRACT_PORTS_FILE
 
 ZIWEI_GRPC_PORT=$grpc_port
 ZIWEI_REST_PORT=$rest_port
