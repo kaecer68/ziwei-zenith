@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, BookOpen, ChevronLeft, LayoutGrid, Moon, Sun } from 'lucide-react';
+import { BarChart3, ChevronLeft, LayoutGrid, Moon, Sun } from 'lucide-react';
 import axios from 'axios';
 import { DirectoryView } from './components/DirectoryView';
 import ZiweiChart from './components/ZiweiChart';
 import InterpretationPanel from './components/InterpretationPanel';
+import PalaceDetailView from './components/PalaceDetailView';
 import './styles/design-system.css';
 
 interface BirthRecord {
@@ -167,13 +168,18 @@ interface ZiweiResponse {
   interpretation: InterpretationData;
 }
 
-type ResultTab = 'overview' | 'chart' | 'analysis';
+type ResultTab = 'overview' | 'chart';
 
 const resultTabs: Array<{ key: ResultTab; label: string; icon: typeof LayoutGrid }> = [
   { key: 'overview', label: '總覽', icon: LayoutGrid },
   { key: 'chart', label: '命盤', icon: BarChart3 },
-  { key: 'analysis', label: '解讀', icon: BookOpen },
 ];
+
+type FocusedPalace = {
+  label: string;
+  palaceName: string;
+  branch?: string;
+} | null;
 
 const ResultsPage = ({
   data,
@@ -189,17 +195,66 @@ const ResultsPage = ({
   userName: string;
 }) => {
   const [activeTab, setActiveTab] = useState<ResultTab>('overview');
+  const [focusedPalace, setFocusedPalace] = useState<FocusedPalace>(null);
+
+  const palaceByBranch = useMemo(() => {
+    const map = new Map<string, string>();
+    Object.entries(data.palaces).forEach(([palaceName, palace]) => {
+      if (palace.branch) {
+        map.set(palace.branch, palaceName);
+      }
+    });
+    return map;
+  }, [data.palaces]);
+
+  const branchByPalace = useMemo(() => {
+    const map = new Map<string, string>();
+    Object.entries(data.palaces).forEach(([palaceName, palace]) => {
+      if (palace.branch) {
+        map.set(palaceName, palace.branch);
+      }
+    });
+    return map;
+  }, [data.palaces]);
 
   const keyInsights = useMemo(() => {
+    const mingHost = palaceByBranch.get(data.ming_gong);
+    const shenHost = palaceByBranch.get(data.shen_gong);
+    const originBranch = branchByPalace.get(data.origin_palace);
+
     return [
-      { label: '命宮', value: data.ming_gong },
-      { label: '身宮', value: data.shen_gong },
-      { label: '五行局', value: data.wuxing },
-      { label: '來因宮', value: data.origin_palace },
-      { label: '納音', value: data.na_yin },
-      { label: '年柱', value: data.year_pillar },
+      {
+        label: `命宮（${data.ming_gong}）`,
+        value: mingHost || data.ming_gong,
+        palace: mingHost,
+        branch: data.ming_gong,
+      },
+      {
+        label: `身宮（${data.shen_gong}）`,
+        value: shenHost || data.shen_gong,
+        palace: shenHost,
+        branch: data.shen_gong,
+      },
+      {
+        label: '五行局',
+        value: data.wuxing,
+      },
+      {
+        label: `來因宮（${originBranch || ''}）`,
+        value: data.origin_palace,
+        palace: data.origin_palace,
+        branch: originBranch,
+      },
+      {
+        label: '納音',
+        value: data.na_yin,
+      },
+      {
+        label: '年柱',
+        value: data.year_pillar,
+      },
     ];
-  }, [data]);
+  }, [data, palaceByBranch, branchByPalace]);
 
   return (
     <div className="page-shell">
@@ -224,10 +279,30 @@ const ResultsPage = ({
 
           <div className="metric-grid">
             {keyInsights.map((item) => (
-              <div key={item.label} className="metric-card">
+              <button
+                key={item.label}
+                className="metric-card"
+                style={{ 
+                  cursor: item.palace ? 'pointer' : 'default',
+                  textAlign: 'left',
+                  border: 'none',
+                  background: 'var(--surface)',
+                }}
+                onClick={() => {
+                  if (item.palace) {
+                    setFocusedPalace({
+                      label: item.label,
+                      palaceName: item.palace,
+                      branch: item.branch,
+                    });
+                  }
+                }}
+                disabled={!item.palace}
+                title={item.palace ? `點擊查看 ${item.label} 的三方四正` : undefined}
+              >
                 <div className="metric-label">{item.label}</div>
                 <div className="metric-value">{item.value}</div>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -238,57 +313,48 @@ const ResultsPage = ({
         </motion.header>
 
         <section className="section-stack">
-          <div className="tab-row">
-            {resultTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button key={tab.key} className={`tab-button ${activeTab === tab.key ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.key)}>
-                  <Icon size={14} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {activeTab === 'overview' && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="insight-grid">
-              <div className="card section-stack">
-                <div className="heading-md">閱讀順序建議</div>
-                <div className="body-sm">先掌握命宮、身宮、來因宮與總結，再進入命盤各宮位與進階解讀，能大幅降低資訊負擔。</div>
-                <div className="tab-row">
-                  <span className="tab-button is-active">先看總覽</span>
-                  <span className="tab-button">再讀命盤</span>
-                  <span className="tab-button">最後深入分析</span>
-                </div>
+          {focusedPalace ? (
+            <PalaceDetailView
+              palaces={data.palaces}
+              focus={focusedPalace}
+              onBack={() => setFocusedPalace(null)}
+            />
+          ) : (
+            <>
+              <div className="tab-row">
+                {resultTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button key={tab.key} className={`tab-button ${activeTab === tab.key ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.key)}>
+                      <Icon size={14} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
               </div>
-              <div className="card section-stack">
-                <div className="heading-md">本命主軸</div>
-                <div className="body-md">{data.interpretation.character_traits || data.interpretation.summary}</div>
-                <div className="body-sm">若你是第一次讀紫微斗數，建議先閱讀「大師總論」與「來因宮分析」。</div>
-              </div>
-            </motion.div>
-          )}
 
-          {activeTab === 'chart' && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <ZiweiChart
-                palaces={data.palaces}
-                mingGong={data.ming_gong}
-                shenGong={data.shen_gong}
-                originPalace={data.origin_palace}
-                currentDaYun={data.current_da_yun}
-                daYun={data.da_yun}
-                liuNian={data.liu_nian}
-                liuYue={data.liu_yue}
-                liuRi={data.liu_ri}
-              />
-            </motion.div>
-          )}
+              {activeTab === 'overview' && (
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                  <InterpretationPanel interpretation={data.interpretation} />
+                </motion.div>
+              )}
 
-          {activeTab === 'analysis' && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <InterpretationPanel interpretation={data.interpretation} />
-            </motion.div>
+              {activeTab === 'chart' && (
+                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                  <ZiweiChart
+                    palaces={data.palaces}
+                    mingGong={data.ming_gong}
+                    shenGong={data.shen_gong}
+                    originPalace={data.origin_palace}
+                    currentDaYun={data.current_da_yun}
+                    daYun={data.da_yun}
+                    liuNian={data.liu_nian}
+                    liuYue={data.liu_yue}
+                    liuRi={data.liu_ri}
+                  />
+                </motion.div>
+              )}
+            </>
           )}
         </section>
       </div>
@@ -325,7 +391,7 @@ export default function App() {
         is_leap: record.is_leap,
         is_dst: record.is_dst,
       };
-      const resp = await axios.post('http://localhost:8081/api/v1/calculate', payload);
+      const resp = await axios.post('/api/v1/calculate', payload);
       setData(resp.data);
       setCurrentPage('results');
     } catch (err) {

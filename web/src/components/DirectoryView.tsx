@@ -72,8 +72,8 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
     setLoading(true);
     try {
       const [recRes, tagRes] = await Promise.all([
-        axios.get('http://localhost:8081/api/v1/records'),
-        axios.get('http://localhost:8081/api/v1/tags'),
+        axios.get('/api/v1/records'),
+        axios.get('/api/v1/tags'),
       ]);
       setRecords(recRes.data || []);
       setTags(tagRes.data || []);
@@ -110,7 +110,7 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
         tags: selectedTags,
         notes: '',
       };
-      const response = await axios.post('http://localhost:8081/api/v1/records', payload);
+      const response = await axios.post('/api/v1/records', payload);
       const newRecord = {
         ...payload,
         id: response.data.id || `temp-${Date.now()}`,
@@ -130,7 +130,7 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
     e.stopPropagation();
     if (!confirm('此操作無法撤銷。確定刪除紀錄？')) return;
     try {
-      await axios.delete(`http://localhost:8081/api/v1/records/${id}`);
+      await axios.delete(`/api/v1/records/${id}`);
       fetchData();
     } catch (err) {
       console.error(err);
