@@ -80,4 +80,4 @@ if [[ "$MODE" == "check" ]]; then
 fi
 
 cp "$tmp" "$TARGET_PORTS_FILE"
-echo "[contracts] 已同步到: $TARGET_PORTS_FILE"
+echo "[contracts] 已同步到: .env.ports"
