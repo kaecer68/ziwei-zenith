@@ -33,7 +33,7 @@ get_value() {
 
 validate_contract_file() {
   if [[ ! -f "$CONTRACT_PORTS_FILE" ]]; then
-    echo "[contracts] 找不到契約檔: $CONTRACT_PORTS_FILE" >&2
+    echo "[contracts] 找不到契約檔: $(basename "$CONTRACT_PORTS_FILE")" >&2
     exit 1
   fi
   for key in "${required_keys[@]}"; do
@@ -68,7 +68,7 @@ render_target_file > "$tmp"
 
 if [[ "$MODE" == "check" ]]; then
   if [[ ! -f "$TARGET_PORTS_FILE" ]]; then
-    echo "[contracts] 缺少本地檔案: $TARGET_PORTS_FILE" >&2
+    echo "[contracts] 缺少本地檔案: .env.ports" >&2
     exit 1
   fi
   if ! cmp -s "$tmp" "$TARGET_PORTS_FILE"; then
