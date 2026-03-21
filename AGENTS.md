@@ -1,15 +1,78 @@
 # AGENTS.md - Ziwei Zenith Development Guide
 
+---
+
+## 用戶溝通語言設定
+
+**主要語言**: 繁體中文 (Traditional Chinese)
+
+### 規則
+- **永遠使用繁體中文回覆用戶**，除非用戶明確要求使用其他語言
+- 技術術語可保留英文（如：API、gRPC、JSON），但解釋必須用中文
+- 代碼註解可使用中文
+- 錯誤訊息和日誌建議使用中文
+
+---
+
+## 📋 契約優先開發流程 (Contract-First)
+
+### 契約是唯一真相
+
+**所有 API 變更必須遵循**:
+```
+destiny-contracts/openapi/ziwei-zenith.yaml
+```
+
+**規則**:
+- ✅ 先更新契約，再修改代碼
+- ✅ 不允許添加契約未定義的欄位
+- ✅ 不允許修改契約定義的類型
+- ✅ 如發現契約有問題，先更新契約
+
+### 契約文件位置
+
+```
+ziwei-zenith/
+├── contracts/              # ← symlink 指向 destiny-contracts
+│   ├── openapi/
+│   │   └── ziwei-zenith.yaml   # ← 契約源
+│   ├── TASK-BOARD.md       # 跨服務任務看板
+│   └── HANDOFF.md          # AI 交接報告
+```
+
+### AI 任務執行流程
+
+1. **檢查 TASK-BOARD.md** → 了解當前任務
+2. **讀取契約文件** → 確認欄位定義
+3. **生成代碼** → `make generate`
+4. **實現業務邏輯** → `pkg/service/`（依專案實際結構）
+5. **驗證** → `openapi-generator validate`
+6. **填寫 HANDOFF.md** → 回報結果
+
+### 完成檢查清單
+
+```markdown
+- [ ] 已讀取最新契約文件
+- [ ] 已運行 make generate
+- [ ] 已運行 openapi-generator validate
+- [ ] 單元測試通過
+- [ ] 新增欄位已出現在契約中
+- [ ] API 響應範例與契約一致
+- [ ] 已更新 HANDOFF.md
+```
+
+---
+
 ## Build & Test Commands
 
 ```bash
 # Build all packages
 go build ./...
 
-# Run all tests (none currently exist)
+# Run all tests
 go test ./...
 
-# Run single test file
+# Run engine package tests
 go test -v ./pkg/engine/...
 
 # Lint with go vet
@@ -29,24 +92,31 @@ go build ./... && go vet ./... && go fmt ./...
 go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10
 go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10 -gender female -json
 
-# Start server (REST :8081 + gRPC :50051)
+# Start server (REST :8083 + gRPC :50053)
 go run ./cmd/ziwei-server/main.go
 
 # Test REST API
 curl -X POST -H "Content-Type: application/json" \
   -d '{"year":1972,"month":6,"day":8,"hour":2,"gender":"male"}' \
-  http://localhost:8081/api/v1/calculate
+  http://localhost:8083/api/v1/calculate
 
 # Test gRPC (requires grpcurl)
-grpcurl -plaintext localhost:50051 list
+grpcurl -plaintext localhost:50053 list
 grpcurl -plaintext -d '{"year":1972,"month":6,"day":8,"hour":1,"gender":"male"}' \
-  localhost:50051 ziwei.v1.ZiweiService/Calculate
-grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListTags
+  localhost:50053 ziwei.v1.ZiweiService/Calculate
+grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListTags
 
 # Regenerate gRPC code (after modifying proto/ziwei.proto)
 protoc --go_out=pkg/api/grpc/v1 --go_opt=paths=source_relative \
   --go-grpc_out=pkg/api/grpc/v1 --go-grpc_opt=paths=source_relative \
   -I proto proto/ziwei.proto
+
+# Runtime Port 契約同步
+# 單一真相檔：contracts/runtime/ports.env（由 destiny-contracts 維護）
+make sync-contracts        # 每次開發前必跑，更新 .env.ports
+make verify-contracts      # 提交/CI 必跑，未同步會 fail
+make dev-clean             # 若 sync/verify 指出 port 被占用，先釋放再重跑
+# 注意：.env.ports 由 scripts/sync-contracts.sh 生成，嚴禁手動修改
 ```
 
 ---
@@ -196,3 +266,25 @@ index := (base + offset) % 12
 - **Go version**: Requires Go 1.25+
 - **No type suppression**: Never use `as any`, `@ts-ignore`, or similar
 - **Test-first**: Write tests for new algorithms before implementation (TDD preferred)
+
+## ANTI-PATTERNS (THIS PROJECT)
+
+### Critical Forbidden Patterns
+- **Type suppression**: NEVER use `as any`, `@ts-ignore`, `interface{}` without justification
+- **Contract violations**: NEVER add API fields not defined in `destiny-contracts/openapi/ziwei-zenith.yaml`
+- **Cross-project contamination**: NEVER mix logic with `lunar-zenith` or `bazi-zenith` projects
+- **Auto-generated edits**: NEVER manually edit `.pb.go` files (use `make generate` instead)
+- **Unused imports**: Will cause build failure - keep imports clean
+
+### Project Isolation Rules
+- **Hermetic builds**: No external network connections from `pkg/` directory
+- **Pure logic**: All紫微-specific algorithms must stay within `ziwei-zenith` boundaries  
+- **Memory pollution prevention**: Regular cleanup of cross-project AI artifacts
+
+## SUBDIRECTORY GUIDES
+
+Detailed package-specific guidance available in:
+- `pkg/basis/AGENTS.md` - Core definitions and constants
+- `pkg/engine/AGENTS.md` - Calculation algorithms and business logic  
+- `pkg/service/AGENTS.md` - Shared services and protocol handling
+- `web/AGENTS.md` - React frontend components and styling

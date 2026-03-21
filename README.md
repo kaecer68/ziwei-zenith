@@ -147,15 +147,15 @@ make dev-clean
 
 ```bash
 # 列出服務
-grpcurl -plaintext localhost:50051 list
+grpcurl -plaintext localhost:50053 list
 
 # 計算命盤
 grpcurl -plaintext -d '{"year":1972,"month":6,"day":8,"hour":1,"gender":"male"}' \
-  localhost:50051 ziwei.v1.ZiweiService/Calculate
+  localhost:50053 ziwei.v1.ZiweiService/Calculate
 
 # 列出紀錄 / 標籤
-grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListRecords
-grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListTags
+grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListRecords
+grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListTags
 ```
 
 ### 作為 Library 使用

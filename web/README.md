@@ -1,73 +1,61 @@
-# React + TypeScript + Vite
+# Ziwei Zenith Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ziwei Zenith 的前端介面，使用 React + TypeScript + Vite，提供紫微排盤輸入、結果展示、紀錄管理與解盤視圖。
 
-Currently, two official plugins are available:
+## 技術棧
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19
+- TypeScript 5
+- Vite 8
+- Framer Motion
+- TailwindCSS
+- Axios
 
-## React Compiler
+## 啟動與建置
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 安裝依賴
+npm install
 
-## Expanding the ESLint configuration
+# 開發模式
+npm run dev
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# 生產建置
+npm run build
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 本地預覽 build 結果
+npm run preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 後端依賴
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+前端預設串接本機後端：`http://localhost:8083`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+主要 API：
+- `POST /api/v1/calculate`
+- `GET /api/v1/records`
+- `POST /api/v1/records`
+- `DELETE /api/v1/records/:id`
+- `GET /api/v1/tags`
+
+## 目錄結構
+
+```text
+web/
+├── src/
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── components/
+│       ├── ZiweiChart.tsx
+│       ├── DirectoryView.tsx
+│       └── InterpretationPanel.tsx
+├── public/
+├── package.json
+└── vite.config.ts
 ```
+
+## 開發規範
+
+- 使用 TypeScript 嚴格型別，不使用 `any` 或 `@ts-ignore`
+- 使用繁體中文作為使用者可見文案
+- 維持元件職責單一，避免把後端邏輯混入 UI 元件

@@ -7,6 +7,12 @@
 **Core Functionality**: 紫微斗數 (Ziwei Douju) fate calculation engine - a complete Chinese astrology chart calculation system  
 **Target Users**: Chinese astrology practitioners, developers building fortune-telling applications, API consumers
 
+### Maintenance Snapshot (2026-03)
+- Backend quality checks: `go test ./...`, `go build ./...`, `go vet ./...` pass.
+- OpenAPI validation: `contracts/openapi/ziwei-zenith.yaml` passes validation.
+- Frontend build: `web` package `npm run build` passes.
+- Items in **Section 8 Future Enhancements** are product roadmap tasks, not current defects.
+
 ## 2. Technical Architecture
 
 ### Technology Stack
@@ -96,8 +102,8 @@ ziwei-zenith/
 - ✅ **時空感應 (Temporal Resonance)**: 疊併感應警告
 
 ### 3.4 Service Layer
-- ✅ **REST API** (port 8081): Full CRUD for records, tags, and chart calculation
-- ✅ **gRPC Service** (port 50051): Protobuf-defined service with 5 RPCs (Calculate, ListRecords, CreateRecord, DeleteRecord, ListTags)
+- ✅ **REST API** (port 8083): Full CRUD for records, tags, and chart calculation
+- ✅ **gRPC Service** (port 50053): Protobuf-defined service with 5 RPCs (Calculate, ListRecords, CreateRecord, DeleteRecord, ListTags)
 - ✅ **gRPC Reflection**: 支援 grpcurl 動態探索
 - ✅ **Shared Service Layer**: `pkg/service/` 統一封裝計算邏輯，REST 與 gRPC 共用
 
@@ -157,36 +163,39 @@ ziwei-zenith/
 ## 5. Usage
 
 ### REST API Server
+
+> REST 路徑約定：主路徑為 `/api/v1/*`；`/v1/ziwei/calculate` 僅作契約中的舊版兼容標記。
+
 ```bash
-# Start server (REST :8081 + gRPC :50051)
+# Start server (REST :8083 + gRPC :50053)
 go run ./cmd/ziwei-server/main.go
 
 # REST: Calculate chart
 curl -X POST -H "Content-Type: application/json" \
-  -d '{"year":1972, "month":6, "day":8, "hour":2, "gender":"male"}' \
-  http://localhost:8081/api/v1/calculate
+  -d '{"year":1972, "month":6, "day":8, "hour":2, "minute":0, "gender":"male", "is_lunar":false, "is_leap":false, "is_dst":false, "longitude":121.565}' \
+  http://localhost:8083/api/v1/calculate
 
 # REST: List records
-curl http://localhost:8081/api/v1/records
+curl http://localhost:8083/api/v1/records
 
 # REST: List tags
-curl http://localhost:8081/api/v1/tags
+curl http://localhost:8083/api/v1/tags
 ```
 
 ### gRPC Service
 ```bash
 # List services
-grpcurl -plaintext localhost:50051 list
+grpcurl -plaintext localhost:50053 list
 
 # Calculate chart
 grpcurl -plaintext -d '{"year":1972,"month":6,"day":8,"hour":1,"gender":"male"}' \
-  localhost:50051 ziwei.v1.ZiweiService/Calculate
+  localhost:50053 ziwei.v1.ZiweiService/Calculate
 
 # List records
-grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListRecords
+grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListRecords
 
 # List tags
-grpcurl -plaintext -d '{}' localhost:50051 ziwei.v1.ZiweiService/ListTags
+grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListTags
 ```
 
 ### Library
@@ -251,6 +260,8 @@ func main() {
 
 ## 8. Future Enhancements
 
+> 說明：以下為規劃中能力，屬於增量開發範圍，不代表當前版本功能缺陷。
+
 ### Phase 2 (Planned)
 - [ ] 小限 (Xiao Xian) calculation
 - [ ] 鐵板神數 (Tieban Shenshu) integration
@@ -284,7 +295,7 @@ func main() {
 | 日柱計算 | 修正 UTC 偏移問題，改用本地時間 JD 計算日柱 |
 | 新增星曜 | 天空、劫煢、恩光、天貴、天官、天福、天哭、天虛、華蓋、破碎、蓑廉、天才、天壽、天德、月德、天傷、天使 |
 | 新增系統 | 十二長生、博士十二神 |
-| 服務協定 | 新增 gRPC 服務（port 50051），與 REST 雙協定運行 |
+| 服務協定 | 新增 gRPC 服務（port 50053），與 REST 雙協定運行 |
 | 前端標籤 | 記錄庫分類標籤功能完善（家人/親戚/朋友/同事/客戶） |
 
 ## 11. References

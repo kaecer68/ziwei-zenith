@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -36,42 +39,106 @@ type CalculateRequest struct {
 }
 
 var (
-	records     []v1.BirthRecord
-	tags        []v1.Tag
-	mu          sync.RWMutex
-	recordsFile = "records.json"
-	tagsFile    = "tags.json"
+	records      []v1.BirthRecord
+	tags         []v1.Tag
+	mu           sync.RWMutex
+	recordsFile  = "records.json"
+	tagsFile     = "tags.json"
+	contractFile = "contracts/openapi/ziwei-zenith.yaml"
 )
 
 func main() {
 	loadData()
 
-	// ─── gRPC Server (port 50051) ───
+	// ─── gRPC Server (port from GRPC_PORT env, default 50053) ───
 	go startGRPCServer()
 
-	// ─── REST Server (port 8081) ───
+	// ─── REST Server (contract-driven port) ───
 	http.HandleFunc("/api/v1/health", healthHandler)
 	http.HandleFunc("/api/v1/calculate", calculateHandler)
 	http.HandleFunc("/api/v1/records", recordsHandler)
 	http.HandleFunc("/api/v1/records/", recordItemHandler)
 	http.HandleFunc("/api/v1/tags", tagsHandler)
 
-	port := "8081"
-	grpcPort := os.Getenv("GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "50053"
+	port, err := resolveRESTPort()
+	if err != nil {
+		log.Fatalf("resolve REST port failed: %v", err)
 	}
+	grpcPort := getGRPCPort()
 	fmt.Printf("Ziwei Zenith REST API on :%s | gRPC on :%s\n", port, grpcPort)
 	if err := http.ListenAndServe(":"+port, corsMiddleware(http.DefaultServeMux)); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func startGRPCServer() {
-	grpcPort := os.Getenv("GRPC_PORT")
-	if grpcPort == "" {
-		grpcPort = "50053"
+func resolveRESTPort() (string, error) {
+	if port := strings.TrimSpace(os.Getenv("REST_PORT")); port != "" {
+		return port, nil
 	}
+
+	port, err := restPortFromContract(contractFile)
+	if err != nil {
+		return "", fmt.Errorf("REST_PORT not set and contract lookup failed: %w", err)
+	}
+
+	return port, nil
+}
+
+const defaultGRPCPort = "50053"
+
+func getGRPCPort() string {
+	if port := strings.TrimSpace(os.Getenv("GRPC_PORT")); port != "" {
+		return port
+	}
+	return defaultGRPCPort
+}
+
+func restPortFromContract(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	inServers := false
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "servers:" {
+			inServers = true
+			continue
+		}
+		if !inServers {
+			continue
+		}
+		if strings.HasPrefix(line, "paths:") {
+			break
+		}
+		if !strings.HasPrefix(line, "- url:") {
+			continue
+		}
+
+		rawURL := strings.TrimSpace(strings.TrimPrefix(line, "- url:"))
+		rawURL = strings.Trim(rawURL, `"'`)
+		u, parseErr := url.Parse(rawURL)
+		if parseErr != nil {
+			return "", fmt.Errorf("invalid server url %q: %w", rawURL, parseErr)
+		}
+		if u.Port() == "" {
+			return "", fmt.Errorf("server url %q has no explicit port", rawURL)
+		}
+		return u.Port(), nil
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return "", errors.New("no server url found under servers in contract")
+}
+
+func startGRPCServer() {
+	grpcPort := getGRPCPort()
 	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
 		log.Fatalf("gRPC listen failed: %v", err)
