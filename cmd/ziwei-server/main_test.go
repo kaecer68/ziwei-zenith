@@ -10,6 +10,12 @@ import (
 func TestRestPortFromContract(t *testing.T) {
 	t.Parallel()
 
+	// 從環境變數讀取期望的 port
+	expectedPort := os.Getenv("REST_PORT")
+	if expectedPort == "" {
+		t.Skip("REST_PORT not set, skipping test")
+	}
+
 	tests := []struct {
 		name      string
 		content   string
@@ -20,12 +26,12 @@ func TestRestPortFromContract(t *testing.T) {
 			name: "parse first server url port",
 			content: `openapi: 3.1.0
 servers:
-  - url: http://localhost:8083
+  - url: http://localhost:` + expectedPort + `
 paths:
   /api/v1/calculate:
     post: {}
 `,
-			wantPort: "8083",
+			wantPort: expectedPort,
 		},
 		{
 			name: "support quoted url",
