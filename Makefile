@@ -1,4 +1,6 @@
-.PHONY: run sync-contracts verify-contracts dev-clean
+.PHONY: dev run sync-contracts verify-contracts dev-clean
+
+dev: run
 
 run:
 	@chmod +x scripts/sync-contracts.sh
