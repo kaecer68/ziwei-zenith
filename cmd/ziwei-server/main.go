@@ -50,7 +50,7 @@ var (
 func main() {
 	loadData()
 
-	// ─── gRPC Server (port from GRPC_PORT env, default 50053) ───
+	// ─── gRPC Server (requires GRPC_PORT env or .env.ports) ───
 	go startGRPCServer()
 
 	// ─── REST Server (contract-driven port) ───
