@@ -2,7 +2,10 @@ package engine
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/kaecer68/lunar-zenith/pkg/celestial"
+	"github.com/kaecer68/lunar-zenith/pkg/zodiac"
 	"github.com/kaecer68/ziwei-zenith/pkg/basis"
 )
 
@@ -109,14 +112,19 @@ func (e *ZiweiEngine) BuildChart(birth basis.BirthInfo) (*ZiweiChart, error) {
 	chart.BoShi = CalcBoShiStars(locateLuCun(yearPillar.Stem), birth.Sex, yearPillar.Stem)
 	chart.TransformedStars = PlaceTransformationStars(yearPillar.Stem, chart)
 	chart.DaYun = CalcDaYun(lp.MingGong, yearPillar.Stem, birth.Sex, wuxing)
-	chart.LiuNian = CalcLiuNian(yearPillar.Branch, birth.SolarYear)
-	chart.LiuYue = CalcLiuYue(chart.LiuNian.Branch, birth.LunarMonth, basis.Branch(birth.HourBranch), birth.LunarMonth)
-	chart.LiuRi = CalcLiuRi(chart.LiuYue, birth.LunarDay)
 
-	// Temporal Transformations
-	chart.LiuNianStars = PlaceLayeredTransformations(yearPillar.Stem, chart)
-	chart.LiuYueStars = PlaceLayeredTransformations(birth.MonthPillar.Stem, chart)
-	chart.LiuRiStars = PlaceLayeredTransformations(birth.DayPillar.Stem, chart)
+	// 獲取當前系統時間計算流年、流月、流日
+	now := time.Now()
+	currentPillar := getCurrentPillar(now)
+
+	chart.LiuNian = CalcLiuNian(currentPillar.yearBranch, now.Year())
+	chart.LiuYue = CalcLiuYue(chart.LiuNian.Branch, birth.LunarMonth, basis.Branch(birth.HourBranch), currentPillar.lunarMonth)
+	chart.LiuRi = CalcLiuRi(chart.LiuYue, currentPillar.lunarDay)
+
+	// Temporal Transformations (使用當前時間的干支)
+	chart.LiuNianStars = PlaceLayeredTransformations(currentPillar.yearStem, chart)
+	chart.LiuYueStars = PlaceLayeredTransformations(currentPillar.monthStem, chart)
+	chart.LiuRiStars = PlaceLayeredTransformations(currentPillar.dayStem, chart)
 
 	chart.Patterns = DetectPatterns(chart)
 	chart.StarBrightness = CalcStarBrightness(chart)
@@ -262,4 +270,34 @@ func (c *ZiweiChart) String() string {
 	}
 
 	return str
+}
+
+// currentPillar 存储当前时间的干支信息
+type currentPillar struct {
+	yearStem   basis.Stem
+	yearBranch basis.Branch
+	monthStem  basis.Stem
+	dayStem    basis.Stem
+	lunarMonth int
+	lunarDay   int
+}
+
+// getCurrentPillar 获取当前系统时间的干支信息
+func getCurrentPillar(now time.Time) currentPillar {
+	pt := celestial.NewPrecisionTime(now)
+	pillar := zodiac.GetAstrologicalPillar(pt)
+
+	// 获取农历日期
+	jd := celestial.TimeToJD(now)
+	lunarEngine := &zodiac.LunarEngine{}
+	lunarDate := lunarEngine.GetLunarDate(jd)
+
+	return currentPillar{
+		yearStem:   basis.Stem(pillar.Year.StemIndex),
+		yearBranch: basis.Branch(pillar.Year.BranchIndex),
+		monthStem:  basis.Stem(pillar.Month.StemIndex),
+		dayStem:    basis.Stem(pillar.Day.StemIndex),
+		lunarMonth: lunarDate.Month,
+		lunarDay:   lunarDate.Day,
+	}
 }

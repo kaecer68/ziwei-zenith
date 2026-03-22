@@ -45,11 +45,13 @@ interface PalaceData {
   };
 }
 
-interface TemporalPalaceData {
+interface TemporalPositionSummary {
+  key: 'da_yun' | 'liu_nian' | 'liu_yue' | 'liu_ri';
   label: string;
-  branch: string;
-  palace: string;
-  stem: string;
+  palace?: string;
+  branch?: string;
+  timeGanzhi?: string;
+  detail?: string;
 }
 
 interface DaYunData {
@@ -68,11 +70,11 @@ interface ZiweiChartProps {
   originPalace: string;
   currentDaYun?: DaYunData | null;
   daYun?: DaYunData[];
-  liuNian?: TemporalPalaceData | null;
-  liuYue?: TemporalPalaceData | null;
-  liuRi?: TemporalPalaceData | null;
+  temporalPositions?: TemporalPositionSummary[];
   className?: string;
 }
+
+type MappingPerspective = 'natal' | 'focused';
 
 const branchLayout = [
   { branch: '巳', area: '1 / 1 / 2 / 2' },
@@ -94,6 +96,13 @@ const palaceCycle = [
   '遷移宮', '僕役宮', '官祿宮', '田宅宮', '福德宮', '父母宮',
 ];
 
+const resolveShiftedPalace = (sourcePalace: string, newBasePalace: string): string | null => {
+  const sourceIndex = palaceCycle.indexOf(sourcePalace);
+  const baseIndex = palaceCycle.indexOf(newBasePalace);
+  if (sourceIndex === -1 || baseIndex === -1) return null;
+  return palaceCycle[(sourceIndex - baseIndex + 12) % 12];
+};
+
 const mainStars = new Set(['紫微', '天機', '太陽', '武曲', '天同', '廉貞', '天府', '太陰', '貪狼', '巨門', '天相', '天梁', '七殺', '破軍']);
 
 const ZiweiChart: React.FC<ZiweiChartProps> = ({
@@ -103,9 +112,7 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
   originPalace,
   currentDaYun,
   daYun = [],
-  liuNian,
-  liuYue,
-  liuRi,
+  temporalPositions = [],
   className = ''
 }) => {
   const palaceEntries = useMemo(() => {
@@ -124,8 +131,16 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
   }, [palaceEntries]);
 
   const [selectedPalaceName, setSelectedPalaceName] = useState<string>(originPalace || palaceEntries[0]?.palaceName || '命宮');
+  const [mappingPerspective, setMappingPerspective] = useState<MappingPerspective>('natal');
+
+  const formatTemporalBadge = (item: TemporalPositionSummary): string => {
+    const timeText = item.timeGanzhi ? `${item.label} ${item.timeGanzhi}` : item.label;
+    const landingText = item.branch ? `｜落宮：${item.branch}宮` : '';
+    return `${timeText}${landingText}`;
+  };
 
   const selectedEntry = palaceEntries.find((entry) => entry.palaceName === selectedPalaceName) ?? palaceEntries[0];
+  const mappingBasePalace = mappingPerspective === 'natal' ? '命宮' : (selectedEntry?.palaceName || '命宮');
   const selectedIndex = palaceCycle.indexOf(selectedEntry?.palaceName || '命宮');
   const sanFangSet = new Set<string>(
     selectedIndex >= 0
@@ -143,17 +158,21 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
     if (!palaceName || !label) return;
     temporalHighlights.set(palaceName, [...(temporalHighlights.get(palaceName) || []), label]);
   };
-  pushHighlight(currentDaYun?.palace, '大限');
-  pushHighlight(liuNian?.palace, '流年');
-  pushHighlight(liuYue?.palace, '流月');
-  pushHighlight(liuRi?.palace, '流日');
+  temporalPositions.forEach((item) => {
+    pushHighlight(item.palace, item.label);
+  });
 
   const relationshipSummary = [
     { label: '本宮', palace: palaceCycle[selectedIndex] },
     { label: '三合', palace: palaceCycle[(selectedIndex + 4) % 12] },
     { label: '對宮', palace: palaceCycle[(selectedIndex + 6) % 12] },
     { label: '三合', palace: palaceCycle[(selectedIndex + 8) % 12] },
-  ].filter((item) => item.palace);
+  ]
+    .filter((item) => item.palace)
+    .map((item) => ({
+      ...item,
+      mapped: item.palace ? resolveShiftedPalace(mappingBasePalace, item.palace) : null,
+    }));
 
   const transformSections = [
     { label: '本命四化', items: selectedEntry?.natal_transforms || [] },
@@ -192,6 +211,7 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
                 const highlightLabels = temporalHighlights.get(entry.palaceName) || [];
                 const isSelected = entry.palaceName === selectedPalaceName;
                 const isSanFang = sanFangSet.has(entry.palaceName);
+                const shiftedPalaceName = resolveShiftedPalace(mappingBasePalace, entry.palaceName);
                 const classNames = ['palace-cell'];
                 if (entry.palaceName === originPalace) classNames.push('palace-cell-origin');
                 if (entry.branch === mingGong) classNames.push('palace-cell-current');
@@ -209,6 +229,9 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
                       <div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>{entry.branch}宮 · {entry.palace_gan || ''}</div>
                         <div>{entry.palaceName}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          改變對應：{mappingBasePalace}→{shiftedPalaceName || '—'}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {entry.palaceName === originPalace && <Crown size={14} color="var(--cta)" />}
@@ -287,11 +310,21 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
                 </div>
                 <div className="tab-row" style={{ justifyContent: 'center' }}>
                   {currentDaYun && <span className="tab-button">大限 {currentDaYun.start_age}-{currentDaYun.end_age}</span>}
-                  {liuNian && <span className="tab-button">流年 {liuNian.branch}</span>}
-                  {liuYue && <span className="tab-button">流月 {liuYue.branch}</span>}
-                  {liuRi && <span className="tab-button">流日 {liuRi.branch}</span>}
+                  {temporalPositions.filter((item) => item.key !== 'da_yun').map((item) => (
+                    <button
+                      key={`center-temporal-${item.key}`}
+                      className="tab-button"
+                      onClick={() => item.palace && setSelectedPalaceName(item.palace)}
+                      title={item.detail || item.label}
+                    >
+                      {formatTemporalBadge(item)}
+                    </button>
+                  ))}
                 </div>
                 <div className="body-sm">來因宮：{originPalace} · 命宮地支：{mingGong} · 身宮地支：{shenGong}</div>
+                <div className="body-sm" style={{ color: 'var(--text-soft)' }}>
+                  目前視角：{mappingPerspective === 'natal' ? '命宮視角' : '點選宮視角'}（基準宮：{mappingBasePalace}）
+                </div>
               </div>
             </div>
           </div>
@@ -303,9 +336,23 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
                 <div className="heading-md">點宮位後的聯動資訊</div>
               </div>
               <div className="tab-row">
+                <button
+                  className={`tab-button ${mappingPerspective === 'natal' ? 'is-active' : ''}`}
+                  onClick={() => setMappingPerspective('natal')}
+                >
+                  命宮視角
+                </button>
+                <button
+                  className={`tab-button ${mappingPerspective === 'focused' ? 'is-active' : ''}`}
+                  onClick={() => setMappingPerspective('focused')}
+                >
+                  點選宮視角
+                </button>
+              </div>
+              <div className="tab-row">
                 {relationshipSummary.map((item, index) => (
                   <span key={`${item.label}-${index}`} className={`tab-button ${item.palace === selectedEntry?.palaceName ? 'is-active' : ''}`}>
-                    {item.label}：{item.palace}
+                    {item.label}：{item.palace}（改變對應：{mappingBasePalace}→{item.mapped || '—'}）
                   </span>
                 ))}
               </div>
@@ -353,16 +400,24 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
             <div className="card section-stack">
               <div className="heading-md">流運定位</div>
               <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                {[
-                  currentDaYun ? { label: '大限', value: `${currentDaYun.palace} (${currentDaYun.start_age}-${currentDaYun.end_age})` } : null,
-                  liuNian ? { label: '流年', value: `${liuNian.palace} / ${liuNian.branch}` } : null,
-                  liuYue ? { label: '流月', value: `${liuYue.palace} / ${liuYue.branch}` } : null,
-                  liuRi ? { label: '流日', value: `${liuRi.palace} / ${liuRi.branch}` } : null,
-                ].filter(Boolean).map((item) => (
-                  <div key={item!.label} className="metric-card">
-                    <div className="metric-label">{item!.label}</div>
-                    <div className="body-md">{item!.value}</div>
-                  </div>
+                {temporalPositions.map((item) => (
+                  <button
+                    key={`position-${item.key}`}
+                    className="metric-card"
+                    style={{ textAlign: 'left', cursor: item.palace ? 'pointer' : 'default' }}
+                    onClick={() => item.palace && setSelectedPalaceName(item.palace)}
+                    disabled={!item.palace}
+                    title={item.palace ? `點擊定位到${item.palace}` : undefined}
+                  >
+                    <div className="metric-label">{item.label}</div>
+                    <div className="body-md">{item.palace || '未定位'}</div>
+                    <div className="body-sm" style={{ color: 'var(--text-soft)' }}>
+                      {item.timeGanzhi || '未知'}｜落宮：{item.branch ? `${item.branch}宮` : '未知'}
+                    </div>
+                    {item.detail && (
+                      <div className="body-sm" style={{ color: 'var(--text-muted)' }}>{item.detail}</div>
+                    )}
+                  </button>
                 ))}
               </div>
               {daYun.length > 0 && (

@@ -51,10 +51,11 @@ type TransformData struct {
 }
 
 type TemporalPalaceData struct {
-	Label  string `json:"label"`
-	Branch string `json:"branch"`
-	Palace string `json:"palace"`
-	Stem   string `json:"stem"`
+	Label      string `json:"label"`
+	Branch     string `json:"branch"`
+	Palace     string `json:"palace"`
+	Stem       string `json:"stem"`
+	TimeBranch string `json:"time_branch"`
 }
 
 type DaYunData struct {

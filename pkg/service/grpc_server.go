@@ -124,15 +124,15 @@ func (s *ZiweiGRPCServer) ListTags(ctx context.Context, req *pb.ListTagsRequest)
 
 func chartToProto(chart *engine.ZiweiChart, gender string) *pb.CalculateResponse {
 	resp := &pb.CalculateResponse{
-		Gender:      gender,
-		Wuxing:      chart.Wuxing.String(),
-		NaYin:       chart.NaYin.String(),
+		Gender:       gender,
+		Wuxing:       chart.Wuxing.String(),
+		NaYin:        chart.NaYin.String(),
 		OriginPalace: chart.Palaces[chart.OriginPalace].String(),
-		MingGong:    chart.LifePalace.MingGong.String(),
-		ShenGong:    chart.LifePalace.ShenGong.String(),
-		YearPillar:  chart.YearPillar.String(),
-		DayPillar:   chart.DayPillar.String(),
-		Palaces:     make(map[string]*pb.PalaceData),
+		MingGong:     chart.LifePalace.MingGong.String(),
+		ShenGong:     chart.LifePalace.ShenGong.String(),
+		YearPillar:   chart.YearPillar.String(),
+		DayPillar:    chart.DayPillar.String(),
+		Palaces:      make(map[string]*pb.PalaceData),
 	}
 
 	for i := 0; i < 12; i++ {
@@ -150,15 +150,15 @@ func chartToProto(chart *engine.ZiweiChart, gender string) *pb.CalculateResponse
 		}
 
 		pd := &pb.PalaceData{
-			Branch:         b.String(),
-			PalaceGan:      chart.PalaceGans[b].String(),
-			Stars:          starNames,
-			StarDetails:    starDetails,
-			AssistantStars: stringifyInterfaces(chart.AssistantStars[b]),
-			SecondaryStars: stringifyInterfaces(chart.SecondaryStars[b]),
-			ChangSheng:     chart.ChangSheng[b].String(),
-			BoShi:          chart.BoShi[b].String(),
-			NatalTransforms: transformsToProto(chart.TransformedStars[b]),
+			Branch:            b.String(),
+			PalaceGan:         chart.PalaceGans[b].String(),
+			Stars:             starNames,
+			StarDetails:       starDetails,
+			AssistantStars:    stringifyInterfaces(chart.AssistantStars[b]),
+			SecondaryStars:    stringifyInterfaces(chart.SecondaryStars[b]),
+			ChangSheng:        chart.ChangSheng[b].String(),
+			BoShi:             chart.BoShi[b].String(),
+			NatalTransforms:   transformsToProto(chart.TransformedStars[b]),
 			LiuNianStars:      stringifyInterfaces(chart.LiuNianStars[b]),
 			LiuNianTransforms: transformsToProto(chart.LiuNianStars[b]),
 			LiuYueStars:       stringifyInterfaces(chart.LiuYueStars[b]),
@@ -197,6 +197,28 @@ func chartToProto(chart *engine.ZiweiChart, gender string) *pb.CalculateResponse
 			Branch:   dy.Branch.String(),
 			Palace:   chart.Palaces[dy.Branch].String(),
 		})
+	}
+
+	resp.LiuNian = &pb.TemporalPalaceData{
+		Label:      "流年",
+		Branch:     chart.LiuNian.Branch.String(),
+		Palace:     chart.Palaces[chart.LiuNian.Branch].String(),
+		Stem:       chart.LiuNian.Stem.String(),
+		TimeBranch: chart.LiuNian.Branch.String(),
+	}
+	resp.LiuYue = &pb.TemporalPalaceData{
+		Label:      "流月",
+		Branch:     chart.LiuYue.String(),
+		Palace:     chart.Palaces[chart.LiuYue].String(),
+		Stem:       chart.MonthPillar.Stem.String(),
+		TimeBranch: chart.MonthPillar.Branch.String(),
+	}
+	resp.LiuRi = &pb.TemporalPalaceData{
+		Label:      "流日",
+		Branch:     chart.LiuRi.String(),
+		Palace:     chart.Palaces[chart.LiuRi].String(),
+		Stem:       chart.DayPillar.Stem.String(),
+		TimeBranch: chart.DayPillar.Branch.String(),
 	}
 
 	// 解讀

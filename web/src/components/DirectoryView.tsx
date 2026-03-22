@@ -5,7 +5,9 @@ import {
   Clock,
   HelpCircle,
   History as HistoryIcon,
+  Plus,
   Search,
+  Settings,
   ShieldCheck,
   Trash2,
   X,
@@ -67,6 +69,10 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
     is_leap: false,
     is_dst: false,
   });
+
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [editingTag, setEditingTag] = useState<TagType | null>(null);
+  const [tagForm, setTagForm] = useState({ name: '', color: '#EAB308' });
 
   const fetchData = async () => {
     setLoading(true);
@@ -135,6 +141,68 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleSaveTag = async () => {
+    if (!tagForm.name.trim()) {
+      alert('請輸入標籤名稱');
+      return;
+    }
+    try {
+      let newTags;
+      if (editingTag) {
+        // 更新現有標籤
+        newTags = tags.map((t) =>
+          t.id === editingTag.id ? { ...t, name: tagForm.name, color: tagForm.color } : t
+        );
+      } else {
+        // 新增標籤
+        const newTag: TagType = {
+          id: Date.now().toString(),
+          name: tagForm.name,
+          color: tagForm.color,
+        };
+        newTags = [...tags, newTag];
+      }
+      await axios.put('/api/v1/tags', newTags);
+      setTags(newTags);
+      setIsTagModalOpen(false);
+      setEditingTag(null);
+      setTagForm({ name: '', color: '#EAB308' });
+    } catch (err) {
+      console.error(err);
+      alert('保存標籤失敗');
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm('確定刪除此標籤？使用此標籤的命盤將移除該標籤。')) return;
+    try {
+      const newTags = tags.filter((t) => t.id !== tagId);
+      await axios.put('/api/v1/tags', newTags);
+      setTags(newTags);
+      // 更新所有使用此標籤的記錄
+      const updatedRecords = records.map((r) => ({
+        ...r,
+        tags: r.tags?.filter((t) => t !== tags.find((tag) => tag.id === tagId)?.name) || [],
+      }));
+      await Promise.all(updatedRecords.map((r) => axios.put(`/api/v1/records/${r.id}`, r)));
+      setRecords(updatedRecords);
+    } catch (err) {
+      console.error(err);
+      alert('刪除標籤失敗');
+    }
+  };
+
+  const openTagModal = (tag?: TagType) => {
+    if (tag) {
+      setEditingTag(tag);
+      setTagForm({ name: tag.name, color: tag.color });
+    } else {
+      setEditingTag(null);
+      setTagForm({ name: '', color: '#EAB308' });
+    }
+    setIsTagModalOpen(true);
   };
 
   const renderStep = () => {
@@ -348,6 +416,10 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
                 <div className="metric-value">{tags.length}</div>
               </div>
             </div>
+            <button className="btn-secondary" onClick={() => openTagModal()}>
+              <Settings size={16} />
+              管理標籤
+            </button>
           </div>
         </section>
 
@@ -476,6 +548,100 @@ export const DirectoryView = ({ onSelect }: DirectoryViewProps) => {
                 <div className="card" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                   <HelpCircle size={18} color="var(--cta)" />
                   <div className="body-sm">若出生時間接近子時，DST 校正可能影響日柱判斷，建議務必確認。</div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isTagModalOpen && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(24, 18, 14, 0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zIndex: 100 }}>
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} className="card" style={{ width: 'min(600px, 100%)', maxHeight: '80vh', overflow: 'auto', position: 'relative' }}>
+              <button className="btn-secondary" style={{ position: 'absolute', top: '1rem', right: '1rem' }} onClick={() => setIsTagModalOpen(false)}>
+                <X size={16} />
+              </button>
+              <div className="section-stack">
+                <div className="heading-md">標籤管理</div>
+                <div className="body-sm">管理分類標籤，方便對命盤進行分類。</div>
+
+                {/* 現有標籤列表 */}
+                <div className="section-stack" style={{ gap: '0.75rem' }}>
+                  <div className="heading-sm">現有標籤</div>
+                  {tags.length === 0 ? (
+                    <div className="body-sm" style={{ color: 'var(--text-soft)' }}>暫無標籤</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {tags.map((tag) => (
+                        <div key={tag.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: tag.color }} />
+                            <span className="body-md">{tag.name}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn-secondary" style={{ padding: '0.4rem' }} onClick={() => openTagModal(tag)}>
+                              <Settings size={14} />
+                            </button>
+                            <button className="btn-secondary" style={{ padding: '0.4rem', color: 'var(--danger)' }} onClick={() => handleDeleteTag(tag.id)}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 新增/編輯標籤表單 */}
+                <div className="section-stack" style={{ gap: '0.75rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                  <div className="heading-sm">{editingTag ? '編輯標籤' : '新增標籤'}</div>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>標籤名稱</label>
+                      <input
+                        value={tagForm.name}
+                        onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
+                        placeholder="例如：VIP客戶"
+                      />
+                    </div>
+                    <div className="field">
+                      <label>顏色</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {['#EAB308', '#3B82F6', '#22C55E', '#8B5CF6', '#EC4899', '#EF4444', '#F97316', '#14B8A6'].map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setTagForm({ ...tagForm, color })}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: color,
+                              border: tagForm.color === color ? '3px solid var(--text)' : '2px solid transparent',
+                              cursor: 'pointer',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                    {editingTag && (
+                      <button
+                        className="btn-secondary"
+                        onClick={() => {
+                          setEditingTag(null);
+                          setTagForm({ name: '', color: '#EAB308' });
+                        }}
+                      >
+                        取消編輯
+                      </button>
+                    )}
+                    <button className="btn-primary" onClick={handleSaveTag}>
+                      <Plus size={16} />
+                      {editingTag ? '保存修改' : '新增標籤'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

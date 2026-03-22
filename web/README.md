@@ -21,14 +21,35 @@ npm install
 # 此步驟必須先執行，否則 vite.config.ts 會報錯
 make sync-contracts
 
-# 開發模式
+# 開發模式（一般啟動）
 npm run dev
+
+# 開發模式（定時重啟看門狗）- 防止 Vite 僵死
+npm run dev:safe
+# 或指定重啟間隔（秒）
+node ../scripts/dev-watchdog.js 3600  # 1 小時重啟
 
 # 生產建置
 npm run build
 
 # 本地預覽 build 結果
 npm run preview
+```
+
+## 從根目錄啟動（推薦）
+
+```bash
+# 僅啟動後端（REST :8083 + gRPC :50053）
+make run
+
+# 僅啟動前端（開發模式）
+make web-dev
+
+# 僅啟動前端（定時重啟看門狗，預設 2 小時）
+make web-dev-safe
+
+# 同時啟動後端 + 前端看門狗
+make dev-all
 ```
 
 ## 後端依賴
@@ -39,10 +60,41 @@ npm run preview
 
 主要 API：
 - `POST /api/v1/calculate`
+- `POST /api/v1/calculate/temporal`
 - `GET /api/v1/records`
 - `POST /api/v1/records`
 - `DELETE /api/v1/records/:id`
 - `GET /api/v1/tags`
+
+### 流運欄位語義（前後端整合）
+
+`TemporalPalaceData` 的時間層與宮位層必須分離處理：
+
+- `stem` + `time_branch`：時間干支（例如 `辛卯`）
+- `branch` + `palace`：流運落宮（例如 `未宮 / 遷移宮`）
+
+前端不得使用 `stem + branch` 拼接時間干支，以避免流月/流日標籤錯誤。
+
+## Vite 僵死問題解決方案
+
+長時間運行的 Vite 開發服務器可能因 FSEvents 累積而進入僵死狀態（無法響應 HTTP 請求）。
+
+### 看門狗功能（`scripts/dev-watchdog.js`）
+
+- **定時重啟**：預設每 2 小時自動重啟 Vite
+- **記憶體監控**：超過 512MB 自動重啟
+- **健康檢查**：每 30 秒檢查 `/api/v1/health`，失敗則重啟
+- **異常恢復**：Vite 異常退出時自動重啟
+
+### 使用方法
+
+```bash
+# 在專案根目錄執行
+make web-dev-safe
+
+# 或自定義重啟間隔（秒）
+node scripts/dev-watchdog.js 3600  # 1 小時
+```
 
 ## 目錄結構
 

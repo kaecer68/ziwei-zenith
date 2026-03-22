@@ -56,6 +56,7 @@ func main() {
 	// ─── REST Server (contract-driven port) ───
 	http.HandleFunc("/api/v1/health", healthHandler)
 	http.HandleFunc("/api/v1/calculate", calculateHandler)
+	http.HandleFunc("/api/v1/calculate/temporal", temporalCalculateHandler)
 	http.HandleFunc("/api/v1/records", recordsHandler)
 	http.HandleFunc("/api/v1/records/", recordItemHandler)
 	http.HandleFunc("/api/v1/tags", tagsHandler)
@@ -334,6 +335,203 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// TemporalCalculateRequest 動態運限計算請求
+type TemporalCalculateRequest struct {
+	BirthYear   int    `json:"birth_year"`
+	BirthMonth  int    `json:"birth_month"`
+	BirthDay    int    `json:"birth_day"`
+	BirthHour   int    `json:"birth_hour"`
+	Gender      string `json:"gender"`
+	IsLunar     bool   `json:"is_lunar"`
+	IsLeap      bool   `json:"is_leap"`
+	DaYunIndex  int    `json:"da_yun_index"`
+	TargetYear  int    `json:"target_year,omitempty"`
+	TargetMonth int    `json:"target_month,omitempty"`
+	TargetDay   int    `json:"target_day,omitempty"`
+}
+
+// TemporalCalculateResponse 動態運限計算響應
+type TemporalCalculateResponse struct {
+	DaYun   v1.DaYunData          `json:"da_yun"`
+	LiuNian v1.TemporalPalaceData `json:"liu_nian"`
+	LiuYue  v1.TemporalPalaceData `json:"liu_yue,omitempty"`
+	LiuRi   v1.TemporalPalaceData `json:"liu_ri,omitempty"`
+}
+
+func temporalCalculateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req TemporalCalculateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// 驗證必要參數
+	if req.BirthYear == 0 || req.BirthMonth == 0 || req.BirthDay == 0 || req.Gender == "" {
+		http.Error(w, "Missing required birth info", http.StatusBadRequest)
+		return
+	}
+	if req.DaYunIndex < 0 || req.DaYunIndex > 11 {
+		http.Error(w, "Invalid da_yun_index (must be 0-11)", http.StatusBadRequest)
+		return
+	}
+
+	// 使用當前時間作為默認值
+	now := time.Now()
+	targetYear := req.TargetYear
+	if targetYear == 0 {
+		targetYear = now.Year()
+	}
+	targetMonth := req.TargetMonth
+	if targetMonth == 0 {
+		targetMonth = int(now.Month())
+	}
+	targetDay := req.TargetDay
+	if targetDay == 0 {
+		targetDay = now.Day()
+	}
+
+	// 構建出生信息並計算命盤
+	sex := basis.SexMale
+	if req.Gender == "female" {
+		sex = basis.SexFemale
+	}
+
+	calcHour := req.BirthHour
+
+	lon := 121.565 // 預設台北
+	loc := time.FixedZone("", int((lon/15)*3600))
+	solarTime := time.Date(req.BirthYear, time.Month(req.BirthMonth), req.BirthDay, calcHour, 0, 0, 0, loc)
+
+	pt := celestial.NewPrecisionTime(solarTime)
+	pillar := zodiac.GetAstrologicalPillar(pt)
+
+	yPillar := basis.Pillar{Stem: basis.Stem(pillar.Year.StemIndex), Branch: basis.Branch(pillar.Year.BranchIndex)}
+	mPillar := basis.Pillar{Stem: basis.Stem(pillar.Month.StemIndex), Branch: basis.Branch(pillar.Month.BranchIndex)}
+	dPillar := basis.Pillar{Stem: basis.Stem(pillar.Day.StemIndex), Branch: basis.Branch(pillar.Day.BranchIndex)}
+
+	localDayPillar := zodiac.GetDaySexagenary(celestial.TimeToJD(solarTime))
+	dPillar = basis.Pillar{Stem: basis.Stem(localDayPillar.StemIndex), Branch: basis.Branch(localDayPillar.BranchIndex)}
+
+	var lYear, lMonth, lDay int
+	if req.IsLunar {
+		lYear = req.BirthYear
+		lMonth = req.BirthMonth
+		if req.IsLeap {
+			lMonth = -req.BirthMonth
+		}
+		lDay = req.BirthDay
+	} else {
+		jd := celestial.TimeToJD(solarTime)
+		lunarEngine := &zodiac.LunarEngine{}
+		lunarDate := lunarEngine.GetLunarDate(jd)
+		lYear = lunarDate.Year
+		lMonth = lunarDate.Month
+		lDay = lunarDate.Day
+	}
+
+	hourBranchIdx := zodiac.GetHourBranch(req.BirthHour)
+	hourSexagenary := zodiac.GetHourSexagenary(int(dPillar.Stem), hourBranchIdx)
+
+	birth := basis.BirthInfo{
+		SolarYear:   req.BirthYear,
+		SolarMonth:  req.BirthMonth,
+		SolarDay:    req.BirthDay,
+		Hour:        req.BirthHour,
+		Sex:         sex,
+		LunarYear:   lYear,
+		LunarMonth:  lMonth,
+		LunarDay:    lDay,
+		HourBranch:  basis.HourBranch(hourBranchIdx),
+		YearPillar:  yPillar,
+		MonthPillar: mPillar,
+		DayPillar:   dPillar,
+		HourPillar:  basis.Pillar{Stem: basis.Stem(hourSexagenary.StemIndex), Branch: basis.Branch(hourSexagenary.BranchIndex)},
+	}
+
+	e := engine.New()
+	chart, err := e.BuildChart(birth)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Calculation error: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// 獲取指定的大限
+	if req.DaYunIndex >= len(chart.DaYun) {
+		http.Error(w, "DaYun index out of range", http.StatusBadRequest)
+		return
+	}
+	selectedDaYun := chart.DaYun[req.DaYunIndex]
+
+	// 計算流年（使用 targetDate，年界以立春切換由 astrological pillar 處理）
+	targetTime := time.Date(targetYear, time.Month(targetMonth), targetDay, 12, 0, 0, 0, loc)
+	targetPillar := zodiac.GetAstrologicalPillar(celestial.NewPrecisionTime(targetTime))
+	lnBranch := basis.Branch(targetPillar.Year.BranchIndex)
+	lnStem := basis.Stem(targetPillar.Year.StemIndex)
+	lunarEngine := &zodiac.LunarEngine{}
+	targetLunarDate := lunarEngine.GetLunarDate(celestial.TimeToJD(targetTime))
+	targetLunarMonth := targetLunarDate.Month
+	if targetLunarMonth < 0 {
+		targetLunarMonth = -targetLunarMonth
+	}
+	targetLunarDay := targetLunarDate.Day
+
+	// 計算流月
+	// 使用 Dou Jun 方法：從流年地支開始，逆數到出生月，再順數到出生時
+	birthMonth := req.BirthMonth
+	if req.IsLunar {
+		// 如果是農曆輸入，需要轉換為陰曆月份
+		birthMonth = req.BirthMonth
+	}
+	hourBranch := basis.HourBranch(hourBranchIdx)
+	month1Idx := (int(lnBranch) - (birthMonth - 1) + int(hourBranch) + 12) % 12
+	lYueIdx := (month1Idx + (targetLunarMonth - 1)) % 12
+	lyBranch := basis.Branch(lYueIdx)
+
+	// 計算流日
+	lRiIdx := (int(lyBranch) + (targetLunarDay - 1)) % 12
+	lrBranch := basis.Branch(lRiIdx)
+
+	response := TemporalCalculateResponse{
+		DaYun: v1.DaYunData{
+			Index:    selectedDaYun.Index,
+			StartAge: selectedDaYun.StartAge,
+			EndAge:   selectedDaYun.EndAge,
+			Stem:     chart.PalaceGans[selectedDaYun.Branch].String(),
+			Branch:   selectedDaYun.Branch.String(),
+			Palace:   chart.Palaces[selectedDaYun.Branch].String(),
+		},
+		LiuNian: v1.TemporalPalaceData{
+			Label:      fmt.Sprintf("流年（%d）", targetYear),
+			Branch:     lnBranch.String(),
+			Palace:     chart.Palaces[lnBranch].String(),
+			Stem:       lnStem.String(),
+			TimeBranch: lnBranch.String(),
+		},
+		LiuYue: v1.TemporalPalaceData{
+			Label:      fmt.Sprintf("流月（國%d月 / 農%d月）", targetMonth, targetLunarMonth),
+			Branch:     lyBranch.String(),
+			Palace:     chart.Palaces[lyBranch].String(),
+			Stem:       basis.Stem(targetPillar.Month.StemIndex).String(),
+			TimeBranch: basis.Branch(targetPillar.Month.BranchIndex).String(),
+		},
+		LiuRi: v1.TemporalPalaceData{
+			Label:      fmt.Sprintf("流日（國%d日 / 農%d日）", targetDay, targetLunarDay),
+			Branch:     lrBranch.String(),
+			Palace:     chart.Palaces[lrBranch].String(),
+			Stem:       basis.Stem(targetPillar.Day.StemIndex).String(),
+			TimeBranch: basis.Branch(targetPillar.Day.BranchIndex).String(),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 func recordsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -557,22 +755,25 @@ func mapChartToResponse(chart *engine.ZiweiChart, gender string) v1.ZiweiRespons
 	}
 
 	liuNian := &v1.TemporalPalaceData{
-		Label:  "流年",
-		Branch: chart.LiuNian.Branch.String(),
-		Palace: chart.Palaces[chart.LiuNian.Branch].String(),
-		Stem:   chart.LiuNian.Stem.String(),
+		Label:      "流年",
+		Branch:     chart.LiuNian.Branch.String(),
+		Palace:     chart.Palaces[chart.LiuNian.Branch].String(),
+		Stem:       chart.LiuNian.Stem.String(),
+		TimeBranch: chart.LiuNian.Branch.String(),
 	}
 	liuYue := &v1.TemporalPalaceData{
-		Label:  "流月",
-		Branch: chart.LiuYue.String(),
-		Palace: chart.Palaces[chart.LiuYue].String(),
-		Stem:   chart.MonthPillar.Stem.String(),
+		Label:      "流月",
+		Branch:     chart.LiuYue.String(),
+		Palace:     chart.Palaces[chart.LiuYue].String(),
+		Stem:       chart.MonthPillar.Stem.String(),
+		TimeBranch: chart.MonthPillar.Branch.String(),
 	}
 	liuRi := &v1.TemporalPalaceData{
-		Label:  "流日",
-		Branch: chart.LiuRi.String(),
-		Palace: chart.Palaces[chart.LiuRi].String(),
-		Stem:   chart.DayPillar.Stem.String(),
+		Label:      "流日",
+		Branch:     chart.LiuRi.String(),
+		Palace:     chart.Palaces[chart.LiuRi].String(),
+		Stem:       chart.DayPillar.Stem.String(),
+		TimeBranch: chart.DayPillar.Branch.String(),
 	}
 
 	return v1.ZiweiResponse{

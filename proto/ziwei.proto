@@ -86,6 +86,7 @@ message TemporalPalaceData {
   string branch = 2;
   string palace = 3;
   string stem = 4;
+  string time_branch = 5;
 }
 
 message DaYunData {

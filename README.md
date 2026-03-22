@@ -118,10 +118,51 @@ curl -X POST -H "Content-Type: application/json" \
   -d '{"year":1972, "month":6, "day":8, "hour":2, "minute":0, "gender":"male", "is_lunar":false, "is_leap":false, "is_dst":false, "longitude":121.565}' \
   http://localhost:8083/api/v1/calculate | jq .
 
+# REST: 動態運限（大限/流年/流月/流日）
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"birth_year":1972, "birth_month":6, "birth_day":8, "birth_hour":2, "gender":"male", "is_lunar":false, "is_leap":false, "da_yun_index":0, "target_year":2026, "target_month":3, "target_day":22}' \
+  http://localhost:8083/api/v1/calculate/temporal | jq .
+
 # REST: 列出紀錄 / 標籤
 curl http://localhost:8083/api/v1/records
 curl http://localhost:8083/api/v1/tags
 ```
+
+### Web 前端開發
+
+前端位於 `web/` 目錄，使用 React + TypeScript + Vite。Vite 開發服務器運行於 `http://localhost:5174`，並透過 proxy 轉發 API 請求到後端 `localhost:8083`。
+
+```bash
+# 安裝前端依賴
+cd web && npm install
+
+# 啟動前端開發服務器（一般模式）
+make web-dev
+
+# 或直接使用 npm
+cd web && npm run dev
+```
+
+#### Vite 開發服務器看門狗
+
+長時間運行的 Vite 可能因 FSEvents 累積而進入僵死狀態（無法響應 HTTP 請求）。使用看門狗自動監控和重啟：
+
+```bash
+# 使用看門狗啟動（預設每 2 小時自動重啟）
+make web-dev-safe
+
+# 自定義重啟間隔（秒）
+node scripts/dev-watchdog.js 3600  # 1 小時
+
+# 同時啟動後端 + 前端看門狗
+make dev-all
+```
+
+看門狗功能：
+- **定時重啟**：預設每 2 小時自動重啟 Vite
+- **記憶體監控**：超過 512MB 自動重啟
+- **健康檢查**：每 30 秒檢查 API 響應，失敗則重啟
+- **異常恢復**：Vite 異常退出時自動重啟
 
 ### Runtime Port 契約同步
 
@@ -157,6 +198,20 @@ grpcurl -plaintext -d '{"year":1972,"month":6,"day":8,"hour":1,"gender":"male"}'
 grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListRecords
 grpcurl -plaintext -d '{}' localhost:50053 ziwei.v1.ZiweiService/ListTags
 ```
+
+### 流運欄位語義（REST/gRPC 一致）
+
+`TemporalPalaceData` 採用「時間層」與「宮位層」分離語義：
+
+- `stem`：流運時間天干
+- `time_branch`：流運時間地支
+- `branch`：流運落宮地支
+- `palace`：流運落宮宮名
+
+例如：`stem=辛`, `time_branch=卯`, `branch=未`, `palace=遷移宮` 表示
+
+- 時間干支：`辛卯`
+- 落宮：`未宮（遷移宮）`
 
 ### 作為 Library 使用
 

@@ -575,6 +575,7 @@ type TemporalPalaceData struct {
 	Branch        string                 `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	Palace        string                 `protobuf:"bytes,3,opt,name=palace,proto3" json:"palace,omitempty"`
 	Stem          string                 `protobuf:"bytes,4,opt,name=stem,proto3" json:"stem,omitempty"`
+	TimeBranch    string                 `protobuf:"bytes,5,opt,name=time_branch,json=timeBranch,proto3" json:"time_branch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -633,6 +634,13 @@ func (x *TemporalPalaceData) GetPalace() string {
 func (x *TemporalPalaceData) GetStem() string {
 	if x != nil {
 		return x.Stem
+	}
+	return ""
+}
+
+func (x *TemporalPalaceData) GetTimeBranch() string {
+	if x != nil {
+		return x.TimeBranch
 	}
 	return ""
 }
@@ -2014,12 +2022,14 @@ const file_ziwei_proto_rawDesc = "" +
 	"\rTransformData\x12\x12\n" +
 	"\x04star\x18\x01 \x01(\tR\x04star\x12&\n" +
 	"\x0etransformation\x18\x02 \x01(\tR\x0etransformation\x12\x18\n" +
-	"\adisplay\x18\x03 \x01(\tR\adisplay\"n\n" +
+	"\adisplay\x18\x03 \x01(\tR\adisplay\"\x8f\x01\n" +
 	"\x12TemporalPalaceData\x12\x14\n" +
 	"\x05label\x18\x01 \x01(\tR\x05label\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x16\n" +
 	"\x06palace\x18\x03 \x01(\tR\x06palace\x12\x12\n" +
-	"\x04stem\x18\x04 \x01(\tR\x04stem\"\x9b\x01\n" +
+	"\x04stem\x18\x04 \x01(\tR\x04stem\x12\x1f\n" +
+	"\vtime_branch\x18\x05 \x01(\tR\n" +
+	"timeBranch\"\x9b\x01\n" +
 	"\tDaYunData\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x1b\n" +
 	"\tstart_age\x18\x02 \x01(\x05R\bstartAge\x12\x17\n" +
