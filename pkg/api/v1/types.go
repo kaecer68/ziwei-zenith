@@ -20,23 +20,24 @@ type ZiweiResponse struct {
 }
 
 type PalaceData struct {
-	Branch            string          `json:"branch"`
-	PalaceGan         string          `json:"palace_gan,omitempty"`
-	Stars             []string        `json:"stars"`
-	StarDetails       []PalaceStar    `json:"star_details,omitempty"`
-	AssistantStars    []string        `json:"assistant_stars,omitempty"`
-	SecondaryStars    []string        `json:"secondary_stars,omitempty"`
-	ChangSheng        string          `json:"chang_sheng,omitempty"`
-	BoShi             string          `json:"bo_shi,omitempty"`
-	NatalTransforms   []TransformData `json:"natal_transforms,omitempty"`
-	LiuNianStars      []string        `json:"liu_nian_stars,omitempty"`
-	LiuNianTransforms []TransformData `json:"liu_nian_transforms,omitempty"`
-	LiuYueStars       []string        `json:"liu_yue_stars,omitempty"`
-	LiuYueTransforms  []TransformData `json:"liu_yue_transforms,omitempty"`
-	LiuRiStars        []string        `json:"liu_ri_stars,omitempty"`
-	LiuRiTransforms   []TransformData `json:"liu_ri_transforms,omitempty"`
-	DaYunAges         []string        `json:"da_yun_ages,omitempty"`
-	FlyHua            FlyHuaAnalysis  `json:"fly_hua,omitempty"`
+	Branch               string          `json:"branch"`
+	PalaceGan            string          `json:"palace_gan,omitempty"`
+	Stars                []string        `json:"stars"`
+	StarDetails          []PalaceStar    `json:"star_details,omitempty"`
+	AssistantStars       []string        `json:"assistant_stars,omitempty"`
+	AssistantStarDetails []PalaceStar    `json:"assistant_star_details,omitempty"`
+	SecondaryStars       []string        `json:"secondary_stars,omitempty"`
+	ChangSheng           string          `json:"chang_sheng,omitempty"`
+	BoShi                string          `json:"bo_shi,omitempty"`
+	NatalTransforms      []TransformData `json:"natal_transforms,omitempty"`
+	LiuNianStars         []string        `json:"liu_nian_stars,omitempty"`
+	LiuNianTransforms    []TransformData `json:"liu_nian_transforms,omitempty"`
+	LiuYueStars          []string        `json:"liu_yue_stars,omitempty"`
+	LiuYueTransforms     []TransformData `json:"liu_yue_transforms,omitempty"`
+	LiuRiStars           []string        `json:"liu_ri_stars,omitempty"`
+	LiuRiTransforms      []TransformData `json:"liu_ri_transforms,omitempty"`
+	DaYunAges            []string        `json:"da_yun_ages,omitempty"`
+	FlyHua               FlyHuaAnalysis  `json:"fly_hua,omitempty"`
 }
 
 type PalaceStar struct {

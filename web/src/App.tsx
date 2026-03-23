@@ -381,48 +381,6 @@ const ResultsPage = ({
     }
   }, [currentTemporalData, effectiveFlowYear]);
 
-  const handlePrevDaYun = () => {
-    if (currentDaYunIndex > 0 && userInfo && data.da_yun) {
-      const newIndex = currentDaYunIndex - 1;
-      setCurrentDaYunIndex(newIndex);
-      
-      const selectedDaYun = data.da_yun[newIndex];
-      const startYear = userInfo.year + selectedDaYun.start_age - 1;
-      const endYear = userInfo.year + selectedDaYun.end_age - 1;
-      
-      setTargetDate((prev) => {
-        const currentYear = prev.getFullYear();
-        if (currentYear >= startYear && currentYear <= endYear) {
-          return prev;
-        }
-        const next = new Date(prev);
-        next.setFullYear(startYear);
-        return next;
-      });
-    }
-  };
-
-  const handleNextDaYun = () => {
-    if (data.da_yun && currentDaYunIndex < data.da_yun.length - 1 && userInfo) {
-      const newIndex = currentDaYunIndex + 1;
-      setCurrentDaYunIndex(newIndex);
-      
-      const selectedDaYun = data.da_yun[newIndex];
-      const startYear = userInfo.year + selectedDaYun.start_age - 1;
-      const endYear = userInfo.year + selectedDaYun.end_age - 1;
-      
-      setTargetDate((prev) => {
-        const currentYear = prev.getFullYear();
-        if (currentYear >= startYear && currentYear <= endYear) {
-          return prev;
-        }
-        const next = new Date(prev);
-        next.setFullYear(startYear);
-        return next;
-      });
-    }
-  };
-
   const handleDaYunClick = (index: number) => {
     setCurrentDaYunIndex(index);
     if (!userInfo || !data.da_yun || !data.da_yun[index]) return;
@@ -735,24 +693,74 @@ const ResultsPage = ({
   return (
     <div className="page-shell">
       <div className="page-container section-stack">
-        <motion.header initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="card section-stack">
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button className="btn-secondary" onClick={onBack}>
+        {/* Top Bar */}
+        <motion.header 
+          initial={{ opacity: 0, y: -16 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="card"
+          style={{ 
+            padding: '0.75rem 1rem',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
+            background: 'var(--surface)',
+            borderBottom: '1px solid var(--border)'
+          }}
+        >
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            {/* 左側：返回按鈕 + 標題 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button className="btn-secondary" onClick={onBack} style={{ padding: '0.375rem 0.75rem' }}>
                 <ChevronLeft size={16} />
-                返回資料列表
+                <span style={{ marginLeft: '0.25rem' }}>返回</span>
               </button>
               <div>
-                <div className="heading-lg">{(userInfo?.name || '未知命主')} 命盤</div>
-                <div className="body-sm">{(userInfo?.gender === 'male' ? '乾造' : '坤造')} | {(userInfo?.year || '-')}年{(userInfo?.month || '-')}月{(userInfo?.day || '-')}日{(userInfo?.hour || '-')}時</div>
+                <div className="heading-md" style={{ fontSize: '1rem', fontWeight: 600 }}>
+                  {(userInfo?.name || '未知命主')} 命盤
+                </div>
+                <div className="body-xs" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {(userInfo?.gender === 'male' ? '乾造' : '坤造')} | {(userInfo?.year || '-')}年{(userInfo?.month || '-')}月{(userInfo?.day || '-')}日{(userInfo?.hour || '-')}時
+                </div>
               </div>
             </div>
-            <button className="btn-secondary" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-              {darkMode ? '淺色' : '深色'}
-            </button>
-          </div>
 
+            {/* 中間：頁籤 */}
+            <div className="tab-row" style={{ margin: 0 }}>
+              {resultTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button 
+                    key={tab.key} 
+                    className={`tab-button ${activeTab === tab.key ? 'is-active' : ''}`} 
+                    onClick={() => setActiveTab(tab.key)}
+                    style={{ padding: '0.375rem 0.75rem' }}
+                  >
+                    <Icon size={14} />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 右側：主題切換 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button className="btn-secondary" onClick={() => setDarkMode(!darkMode)} style={{ padding: '0.375rem' }}>
+                {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+            </div>
+          </div>
+        </motion.header>
+
+        <motion.div 
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }} 
+          className="card section-stack"
+        >
           <div className="metric-grid">
             {keyInsights.map((item) => {
               const isSelected = selectedInsight === item.label;
@@ -763,9 +771,54 @@ const ResultsPage = ({
                   style={{
                     cursor: item.palace ? 'pointer' : 'default',
                     textAlign: 'left',
-                    border: isSelected ? '2px solid var(--cta)' : 'none',
-                    background: isSelected ? 'rgba(178, 135, 70, 0.15)' : 'var(--surface)',
-                    boxShadow: isSelected ? '0 0 0 1px var(--cta)' : undefined,
+                    border: isSelected 
+                      ? '2px solid var(--cta)' 
+                      : item.palace 
+                        ? '1px solid var(--border-strong)' 
+                        : '1px solid var(--border)',
+                    background: isSelected 
+                      ? 'rgba(178, 135, 70, 0.15)' 
+                      : 'var(--surface-strong)',
+                    boxShadow: isSelected 
+                      ? '0 0 0 1px var(--cta), 0 4px 12px rgba(178, 135, 70, 0.25)' 
+                      : item.palace 
+                        ? '0 2px 8px rgba(46, 28, 18, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)' 
+                        : '0 1px 3px rgba(46, 28, 18, 0.04)',
+                    transition: 'all 200ms ease',
+                    transform: item.palace ? 'translateY(0)' : undefined,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (item.palace && !isSelected) {
+                      e.currentTarget.style.background = 'var(--cream)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(46, 28, 18, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.borderColor = 'var(--gold-medium)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (item.palace && !isSelected) {
+                      e.currentTarget.style.background = 'var(--surface-strong)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(46, 28, 18, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'var(--border-strong)';
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    if (item.palace) {
+                      e.currentTarget.style.transform = 'translateY(1px)';
+                      e.currentTarget.style.boxShadow = '0 1px 4px rgba(46, 28, 18, 0.1), inset 0 2px 4px rgba(0, 0, 0, 0.05)';
+                    }
+                  }}
+                  onMouseUp={(e) => {
+                    if (item.palace && !isSelected) {
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(46, 28, 18, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+                    } else if (item.palace && isSelected) {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px var(--cta), 0 4px 12px rgba(178, 135, 70, 0.25)';
+                    }
                   }}
                   onClick={() => {
                     if (item.palace) {
@@ -784,120 +837,132 @@ const ResultsPage = ({
                   disabled={!item.palace}
                   title={item.palace ? `點擊查看 ${item.label} 的三方四正` : undefined}
                 >
-                  <div className="metric-label">{item.label}</div>
-                  <div className="metric-value">{item.value}</div>
+                  <div 
+                    className="metric-label" 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.35rem',
+                      color: isSelected ? 'var(--cta)' : item.palace ? 'var(--secondary)' : 'var(--text-soft)',
+                      fontWeight: item.palace ? 500 : 400,
+                    }}
+                  >
+                    {item.label}
+                    {item.palace && (
+                      <svg 
+                        width="12" 
+                        height="12" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        style={{ 
+                          opacity: isSelected ? 1 : 0.5,
+                          transform: isSelected ? 'rotate(90deg)' : 'rotate(0deg)',
+                          transition: 'all 200ms ease',
+                        }}
+                      >
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    )}
+                  </div>
+                  <div 
+                    className="metric-value"
+                    style={{
+                      color: isSelected ? 'var(--primary)' : item.palace ? 'var(--primary)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {item.value}
+                  </div>
                 </button>
               );
             })}
           </div>
 
-          {/* 大限切換控制 */}
           {data.da_yun && data.da_yun.length > 0 && (
-            <>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.75rem', 
+              padding: '0.75rem 1rem',
+              background: 'rgba(178, 135, 70, 0.08)',
+              borderRadius: '0.5rem',
+              marginTop: '0.5rem'
+            }}>
+              <span className="body-sm" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                大限：
+              </span>
+              
               <div style={{ 
                 display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.75rem', 
-                padding: '0.75rem 1rem',
-                background: 'rgba(178, 135, 70, 0.08)',
-                borderRadius: '0.5rem',
-                marginTop: '0.5rem'
+                gap: '0.375rem', 
+                flexWrap: 'wrap',
+                flex: 1,
+                justifyContent: 'center'
               }}>
-                <span className="body-sm" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                  大限切換：
+                {data.da_yun.map((dy, index) => (
+                  <button
+                    key={dy.index}
+                    onClick={() => handleDaYunClick(index)}
+                    disabled={isTemporalLoading}
+                    style={{
+                      padding: '0.375rem 0.625rem',
+                      fontSize: '0.8rem',
+                      borderRadius: '0.375rem',
+                      border: currentDaYunIndex === index 
+                        ? '2px solid var(--cta)' 
+                        : '1px solid var(--border)',
+                      background: currentDaYunIndex === index 
+                        ? 'rgba(178, 135, 70, 0.2)' 
+                        : 'var(--surface)',
+                      color: currentDaYunIndex === index 
+                        ? 'var(--cta)' 
+                        : 'var(--text-secondary)',
+                      cursor: isTemporalLoading ? 'not-allowed' : 'pointer',
+                      opacity: isTemporalLoading ? 0.6 : 1,
+                      minWidth: '3.5rem',
+                      textAlign: 'center'
+                    }}
+                    title={`${dy.start_age}-${dy.end_age}歲 (${dy.palace})`}
+                  >
+                    {dy.start_age}-{dy.end_age}
+                  </button>
+                ))}
+              </div>
+              
+              {isTemporalLoading && (
+                <span className="body-sm" style={{ color: 'var(--cta)', marginLeft: '0.5rem' }}>
+                  計算中...
                 </span>
-                <button 
-                  className="btn-secondary" 
-                  onClick={handlePrevDaYun}
-                  disabled={currentDaYunIndex === 0 || isTemporalLoading}
-                  style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
-                >
-                  ← 上一個
-                </button>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '0.375rem', 
-                  flexWrap: 'wrap',
-                  flex: 1,
-                  justifyContent: 'center'
-                }}>
-                  {data.da_yun.map((dy, index) => (
-                    <button
-                      key={dy.index}
-                      onClick={() => handleDaYunClick(index)}
-                      disabled={isTemporalLoading}
-                      style={{
-                        padding: '0.375rem 0.625rem',
-                        fontSize: '0.8rem',
-                        borderRadius: '0.375rem',
-                        border: currentDaYunIndex === index 
-                          ? '2px solid var(--cta)' 
-                          : '1px solid var(--border)',
-                        background: currentDaYunIndex === index 
-                          ? 'rgba(178, 135, 70, 0.2)' 
-                          : 'var(--surface)',
-                        color: currentDaYunIndex === index 
-                          ? 'var(--cta)' 
-                          : 'var(--text-secondary)',
-                        cursor: isTemporalLoading ? 'not-allowed' : 'pointer',
-                        opacity: isTemporalLoading ? 0.6 : 1,
-                        minWidth: '3.5rem',
-                        textAlign: 'center'
-                      }}
-                      title={`${dy.start_age}-${dy.end_age}歲 (${dy.palace})`}
-                    >
-                      {dy.start_age}-{dy.end_age}
-                    </button>
-                  ))}
-                </div>
-                
-                <button 
-                  className="btn-secondary" 
-                  onClick={handleNextDaYun}
-                  disabled={currentDaYunIndex >= (data.da_yun.length - 1) || isTemporalLoading}
-                  style={{ padding: '0.375rem 0.75rem', fontSize: '0.875rem' }}
-                >
-                  下一個 →
-                </button>
-                
-                {isTemporalLoading && (
-                  <span className="body-sm" style={{ color: 'var(--cta)', marginLeft: '0.5rem' }}>
-                    計算中...
+              )}
+              
+              {/* 日期選擇器 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.75rem', paddingLeft: '0.75rem', borderLeft: '1px solid var(--border)' }}>
+                <input
+                  type="date"
+                  value={`${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`}
+                  onChange={(e) => setTargetDate(new Date(e.target.value))}
+                  disabled={isTemporalLoading}
+                  style={{
+                    padding: '0.375rem 0.5rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text)',
+                    fontSize: '0.8rem',
+                  }}
+                />
+                {currentTemporalData && (
+                  <span className="body-xs" style={{ color: 'var(--cta)', whiteSpace: 'nowrap' }}>
+                    農曆{currentTemporalData.lunar_month}月{currentTemporalData.lunar_day}日
                   </span>
                 )}
               </div>
-
-              <div className="card section-stack" style={{ marginTop: '0.75rem', gap: '0.65rem' }}>
-                <div className="heading-sm">流運直觀操作面板 <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-soft)' }}>（陽曆日期）</span></div>
-
-                <div className="body-sm" style={{ color: 'var(--text-secondary)' }}>選擇日期</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="date"
-                    value={`${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`}
-                    onChange={(e) => setTargetDate(new Date(e.target.value))}
-                    disabled={isTemporalLoading}
-                    style={{
-                      padding: '0.5rem',
-                      borderRadius: 'var(--radius-sm)',
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface)',
-                      color: 'var(--text)',
-                      fontSize: '0.875rem',
-                    }}
-                  />
-                  {currentTemporalData && (
-                    <span className="body-sm" style={{ color: 'var(--cta)' }}>
-                      農曆 {currentTemporalData.lunar_month}月 {currentTemporalData.lunar_day}日
-                    </span>
-                  )}
-                </div>
-              </div>
-
-            </>
+            </div>
           )}
-        </motion.header>
+        </motion.div>
 
         <section className="section-stack">
           {focusedPalace ? (
@@ -909,17 +974,6 @@ const ResultsPage = ({
             />
           ) : (
             <>
-              <div className="tab-row">
-                {resultTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <button key={tab.key} className={`tab-button ${activeTab === tab.key ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.key)}>
-                      <Icon size={14} />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
 
               {activeTab === 'overview' && (
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>

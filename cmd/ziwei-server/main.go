@@ -692,6 +692,28 @@ func mapChartToResponse(chart *engine.ZiweiChart, gender string, birthYear int) 
 		}
 
 		assistantStars := stringifyInterfaces(chart.AssistantStars[b])
+		assistantStarDetails := make([]v1.PalaceStar, 0)
+		for _, s := range chart.AssistantStars[b] {
+			starName := ""
+			brightness := ""
+			switch star := s.(type) {
+			case basis.AuspiciousStar:
+				starName = star.String()
+				brightness = basis.AuspiciousBrightnessLevel(star, b).String()
+			case basis.LuCunStar:
+				starName = star.String()
+				brightness = basis.LuCunBrightnessLevel(star, b).String()
+			case basis.MaleficStar:
+				starName = star.String()
+				brightness = basis.MaleficBrightnessLevel(star, b).String()
+			default:
+				continue
+			}
+			assistantStarDetails = append(assistantStarDetails, v1.PalaceStar{
+				Name:       starName,
+				Brightness: brightness,
+			})
+		}
 		secondaryStars := stringifyInterfaces(chart.SecondaryStars[b])
 		natalTransforms := transformDataFromInterfaces(chart.TransformedStars[b])
 		lnStars := stringifyInterfaces(chart.LiuNianStars[b])
@@ -709,23 +731,24 @@ func mapChartToResponse(chart *engine.ZiweiChart, gender string, birthYear int) 
 		}
 
 		palaces[pType.String()] = v1.PalaceData{
-			Branch:            b.String(),
-			PalaceGan:         chart.PalaceGans[b].String(),
-			Stars:             starNames,
-			StarDetails:       starDetails,
-			AssistantStars:    assistantStars,
-			SecondaryStars:    secondaryStars,
-			ChangSheng:        chart.ChangSheng[b].String(),
-			BoShi:             chart.BoShi[b].String(),
-			NatalTransforms:   natalTransforms,
-			LiuNianStars:      lnStars,
-			LiuNianTransforms: lnTransforms,
-			LiuYueStars:       lyStars,
-			LiuYueTransforms:  lyTransforms,
-			LiuRiStars:        lrStars,
-			LiuRiTransforms:   lrTransforms,
-			DaYunAges:         daYunAges,
-			FlyHua:            buildPalaceFlyHua(chart, b),
+			Branch:               b.String(),
+			PalaceGan:            chart.PalaceGans[b].String(),
+			Stars:                starNames,
+			StarDetails:          starDetails,
+			AssistantStars:       assistantStars,
+			AssistantStarDetails: assistantStarDetails,
+			SecondaryStars:       secondaryStars,
+			ChangSheng:           chart.ChangSheng[b].String(),
+			BoShi:                chart.BoShi[b].String(),
+			NatalTransforms:      natalTransforms,
+			LiuNianStars:         lnStars,
+			LiuNianTransforms:    lnTransforms,
+			LiuYueStars:          lyStars,
+			LiuYueTransforms:     lyTransforms,
+			LiuRiStars:           lrStars,
+			LiuRiTransforms:      lrTransforms,
+			DaYunAges:            daYunAges,
+			FlyHua:               buildPalaceFlyHua(chart, b),
 		}
 	}
 

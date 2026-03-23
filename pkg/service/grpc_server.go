@@ -149,22 +149,46 @@ func chartToProto(chart *engine.ZiweiChart, gender string) *pb.CalculateResponse
 			})
 		}
 
+		assistantStarDetails := make([]*pb.PalaceStar, 0)
+		for _, s := range chart.AssistantStars[b] {
+			starName := ""
+			brightness := ""
+			switch star := s.(type) {
+			case basis.AuspiciousStar:
+				starName = star.String()
+				brightness = basis.AuspiciousBrightnessLevel(star, b).String()
+			case basis.LuCunStar:
+				starName = star.String()
+				brightness = basis.LuCunBrightnessLevel(star, b).String()
+			case basis.MaleficStar:
+				starName = star.String()
+				brightness = basis.MaleficBrightnessLevel(star, b).String()
+			default:
+				continue
+			}
+			assistantStarDetails = append(assistantStarDetails, &pb.PalaceStar{
+				Name:       starName,
+				Brightness: brightness,
+			})
+		}
+
 		pd := &pb.PalaceData{
-			Branch:            b.String(),
-			PalaceGan:         chart.PalaceGans[b].String(),
-			Stars:             starNames,
-			StarDetails:       starDetails,
-			AssistantStars:    stringifyInterfaces(chart.AssistantStars[b]),
-			SecondaryStars:    stringifyInterfaces(chart.SecondaryStars[b]),
-			ChangSheng:        chart.ChangSheng[b].String(),
-			BoShi:             chart.BoShi[b].String(),
-			NatalTransforms:   transformsToProto(chart.TransformedStars[b]),
-			LiuNianStars:      stringifyInterfaces(chart.LiuNianStars[b]),
-			LiuNianTransforms: transformsToProto(chart.LiuNianStars[b]),
-			LiuYueStars:       stringifyInterfaces(chart.LiuYueStars[b]),
-			LiuYueTransforms:  transformsToProto(chart.LiuYueStars[b]),
-			LiuRiStars:        stringifyInterfaces(chart.LiuRiStars[b]),
-			LiuRiTransforms:   transformsToProto(chart.LiuRiStars[b]),
+			Branch:               b.String(),
+			PalaceGan:            chart.PalaceGans[b].String(),
+			Stars:                starNames,
+			StarDetails:          starDetails,
+			AssistantStars:       stringifyInterfaces(chart.AssistantStars[b]),
+			AssistantStarDetails: assistantStarDetails,
+			SecondaryStars:       stringifyInterfaces(chart.SecondaryStars[b]),
+			ChangSheng:           chart.ChangSheng[b].String(),
+			BoShi:                chart.BoShi[b].String(),
+			NatalTransforms:      transformsToProto(chart.TransformedStars[b]),
+			LiuNianStars:         stringifyInterfaces(chart.LiuNianStars[b]),
+			LiuNianTransforms:    transformsToProto(chart.LiuNianStars[b]),
+			LiuYueStars:          stringifyInterfaces(chart.LiuYueStars[b]),
+			LiuYueTransforms:     transformsToProto(chart.LiuYueStars[b]),
+			LiuRiStars:           stringifyInterfaces(chart.LiuRiStars[b]),
+			LiuRiTransforms:      transformsToProto(chart.LiuRiStars[b]),
 		}
 
 		daYunAges := make([]string, 0)

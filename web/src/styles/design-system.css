@@ -383,12 +383,16 @@ body {
 }
 
 .tab-button {
-  padding: 0.7rem 1rem;
-  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--secondary);
   cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .tab-button.is-active {

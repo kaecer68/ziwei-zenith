@@ -319,26 +319,27 @@ func (x *CalculateResponse) GetLiuRiPalaceTransforms() map[string]*PalaceTransfo
 }
 
 type PalaceData struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Branch            string                 `protobuf:"bytes,1,opt,name=branch,proto3" json:"branch,omitempty"`
-	PalaceGan         string                 `protobuf:"bytes,2,opt,name=palace_gan,json=palaceGan,proto3" json:"palace_gan,omitempty"`
-	Stars             []string               `protobuf:"bytes,3,rep,name=stars,proto3" json:"stars,omitempty"`
-	StarDetails       []*PalaceStar          `protobuf:"bytes,4,rep,name=star_details,json=starDetails,proto3" json:"star_details,omitempty"`
-	AssistantStars    []string               `protobuf:"bytes,5,rep,name=assistant_stars,json=assistantStars,proto3" json:"assistant_stars,omitempty"`
-	SecondaryStars    []string               `protobuf:"bytes,6,rep,name=secondary_stars,json=secondaryStars,proto3" json:"secondary_stars,omitempty"`
-	ChangSheng        string                 `protobuf:"bytes,7,opt,name=chang_sheng,json=changSheng,proto3" json:"chang_sheng,omitempty"`
-	BoShi             string                 `protobuf:"bytes,8,opt,name=bo_shi,json=boShi,proto3" json:"bo_shi,omitempty"`
-	NatalTransforms   []*TransformData       `protobuf:"bytes,9,rep,name=natal_transforms,json=natalTransforms,proto3" json:"natal_transforms,omitempty"`
-	LiuNianStars      []string               `protobuf:"bytes,10,rep,name=liu_nian_stars,json=liuNianStars,proto3" json:"liu_nian_stars,omitempty"`
-	LiuNianTransforms []*TransformData       `protobuf:"bytes,11,rep,name=liu_nian_transforms,json=liuNianTransforms,proto3" json:"liu_nian_transforms,omitempty"`
-	LiuYueStars       []string               `protobuf:"bytes,12,rep,name=liu_yue_stars,json=liuYueStars,proto3" json:"liu_yue_stars,omitempty"`
-	LiuYueTransforms  []*TransformData       `protobuf:"bytes,13,rep,name=liu_yue_transforms,json=liuYueTransforms,proto3" json:"liu_yue_transforms,omitempty"`
-	LiuRiStars        []string               `protobuf:"bytes,14,rep,name=liu_ri_stars,json=liuRiStars,proto3" json:"liu_ri_stars,omitempty"`
-	LiuRiTransforms   []*TransformData       `protobuf:"bytes,15,rep,name=liu_ri_transforms,json=liuRiTransforms,proto3" json:"liu_ri_transforms,omitempty"`
-	DaYunAges         []string               `protobuf:"bytes,16,rep,name=da_yun_ages,json=daYunAges,proto3" json:"da_yun_ages,omitempty"`
-	FlyHua            *FlyHuaAnalysis        `protobuf:"bytes,17,opt,name=fly_hua,json=flyHua,proto3" json:"fly_hua,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Branch               string                 `protobuf:"bytes,1,opt,name=branch,proto3" json:"branch,omitempty"`
+	PalaceGan            string                 `protobuf:"bytes,2,opt,name=palace_gan,json=palaceGan,proto3" json:"palace_gan,omitempty"`
+	Stars                []string               `protobuf:"bytes,3,rep,name=stars,proto3" json:"stars,omitempty"`
+	StarDetails          []*PalaceStar          `protobuf:"bytes,4,rep,name=star_details,json=starDetails,proto3" json:"star_details,omitempty"`
+	AssistantStars       []string               `protobuf:"bytes,5,rep,name=assistant_stars,json=assistantStars,proto3" json:"assistant_stars,omitempty"`
+	SecondaryStars       []string               `protobuf:"bytes,6,rep,name=secondary_stars,json=secondaryStars,proto3" json:"secondary_stars,omitempty"`
+	ChangSheng           string                 `protobuf:"bytes,7,opt,name=chang_sheng,json=changSheng,proto3" json:"chang_sheng,omitempty"`
+	BoShi                string                 `protobuf:"bytes,8,opt,name=bo_shi,json=boShi,proto3" json:"bo_shi,omitempty"`
+	NatalTransforms      []*TransformData       `protobuf:"bytes,9,rep,name=natal_transforms,json=natalTransforms,proto3" json:"natal_transforms,omitempty"`
+	LiuNianStars         []string               `protobuf:"bytes,10,rep,name=liu_nian_stars,json=liuNianStars,proto3" json:"liu_nian_stars,omitempty"`
+	LiuNianTransforms    []*TransformData       `protobuf:"bytes,11,rep,name=liu_nian_transforms,json=liuNianTransforms,proto3" json:"liu_nian_transforms,omitempty"`
+	LiuYueStars          []string               `protobuf:"bytes,12,rep,name=liu_yue_stars,json=liuYueStars,proto3" json:"liu_yue_stars,omitempty"`
+	LiuYueTransforms     []*TransformData       `protobuf:"bytes,13,rep,name=liu_yue_transforms,json=liuYueTransforms,proto3" json:"liu_yue_transforms,omitempty"`
+	LiuRiStars           []string               `protobuf:"bytes,14,rep,name=liu_ri_stars,json=liuRiStars,proto3" json:"liu_ri_stars,omitempty"`
+	LiuRiTransforms      []*TransformData       `protobuf:"bytes,15,rep,name=liu_ri_transforms,json=liuRiTransforms,proto3" json:"liu_ri_transforms,omitempty"`
+	DaYunAges            []string               `protobuf:"bytes,16,rep,name=da_yun_ages,json=daYunAges,proto3" json:"da_yun_ages,omitempty"`
+	FlyHua               *FlyHuaAnalysis        `protobuf:"bytes,17,opt,name=fly_hua,json=flyHua,proto3" json:"fly_hua,omitempty"`
+	AssistantStarDetails []*PalaceStar          `protobuf:"bytes,18,rep,name=assistant_star_details,json=assistantStarDetails,proto3" json:"assistant_star_details,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *PalaceData) Reset() {
@@ -486,6 +487,13 @@ func (x *PalaceData) GetDaYunAges() []string {
 func (x *PalaceData) GetFlyHua() *FlyHuaAnalysis {
 	if x != nil {
 		return x.FlyHua
+	}
+	return nil
+}
+
+func (x *PalaceData) GetAssistantStarDetails() []*PalaceStar {
+	if x != nil {
+		return x.AssistantStarDetails
 	}
 	return nil
 }
@@ -2091,7 +2099,7 @@ const file_ziwei_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\x1ah\n" +
 	"\x1aLiuRiPalaceTransformsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
-	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\"\xf4\x05\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\"\xc0\x06\n" +
 	"\n" +
 	"PalaceData\x12\x16\n" +
 	"\x06branch\x18\x01 \x01(\tR\x06branch\x12\x1d\n" +
@@ -2114,7 +2122,8 @@ const file_ziwei_proto_rawDesc = "" +
 	"liuRiStars\x12C\n" +
 	"\x11liu_ri_transforms\x18\x0f \x03(\v2\x17.ziwei.v1.TransformDataR\x0fliuRiTransforms\x12\x1e\n" +
 	"\vda_yun_ages\x18\x10 \x03(\tR\tdaYunAges\x121\n" +
-	"\afly_hua\x18\x11 \x01(\v2\x18.ziwei.v1.FlyHuaAnalysisR\x06flyHua\"@\n" +
+	"\afly_hua\x18\x11 \x01(\v2\x18.ziwei.v1.FlyHuaAnalysisR\x06flyHua\x12J\n" +
+	"\x16assistant_star_details\x18\x12 \x03(\v2\x14.ziwei.v1.PalaceStarR\x14assistantStarDetails\"@\n" +
 	"\n" +
 	"PalaceStar\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1e\n" +
@@ -2315,37 +2324,38 @@ var file_ziwei_proto_depIdxs = []int32{
 	4,  // 15: ziwei.v1.PalaceData.liu_yue_transforms:type_name -> ziwei.v1.TransformData
 	4,  // 16: ziwei.v1.PalaceData.liu_ri_transforms:type_name -> ziwei.v1.TransformData
 	11, // 17: ziwei.v1.PalaceData.fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
-	4,  // 18: ziwei.v1.PalaceTransformGroup.transforms:type_name -> ziwei.v1.TransformData
-	4,  // 19: ziwei.v1.DaYunData.transforms:type_name -> ziwei.v1.TransformData
-	14, // 20: ziwei.v1.InterpretationData.karmic_narrative:type_name -> ziwei.v1.KarmicStep
-	15, // 21: ziwei.v1.InterpretationData.san_fang_diagnosis:type_name -> ziwei.v1.SanFangRole
-	10, // 22: ziwei.v1.InterpretationData.star_details:type_name -> ziwei.v1.DeepStarAnalysis
-	11, // 23: ziwei.v1.InterpretationData.origin_fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
-	13, // 24: ziwei.v1.InterpretationData.temporal_resonance:type_name -> ziwei.v1.ResonancePoint
-	12, // 25: ziwei.v1.FlyHuaAnalysis.stages:type_name -> ziwei.v1.FlyStage
-	16, // 26: ziwei.v1.ListRecordsResponse.records:type_name -> ziwei.v1.BirthRecord
-	16, // 27: ziwei.v1.CreateRecordResponse.record:type_name -> ziwei.v1.BirthRecord
-	23, // 28: ziwei.v1.ListTagsResponse.tags:type_name -> ziwei.v1.Tag
-	2,  // 29: ziwei.v1.CalculateResponse.PalacesEntry.value:type_name -> ziwei.v1.PalaceData
-	6,  // 30: ziwei.v1.CalculateResponse.DaYunPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
-	6,  // 31: ziwei.v1.CalculateResponse.LiuNianPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
-	6,  // 32: ziwei.v1.CalculateResponse.LiuYuePalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
-	6,  // 33: ziwei.v1.CalculateResponse.LiuRiPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
-	0,  // 34: ziwei.v1.ZiweiService.Calculate:input_type -> ziwei.v1.CalculateRequest
-	17, // 35: ziwei.v1.ZiweiService.ListRecords:input_type -> ziwei.v1.ListRecordsRequest
-	19, // 36: ziwei.v1.ZiweiService.CreateRecord:input_type -> ziwei.v1.CreateRecordRequest
-	21, // 37: ziwei.v1.ZiweiService.DeleteRecord:input_type -> ziwei.v1.DeleteRecordRequest
-	24, // 38: ziwei.v1.ZiweiService.ListTags:input_type -> ziwei.v1.ListTagsRequest
-	1,  // 39: ziwei.v1.ZiweiService.Calculate:output_type -> ziwei.v1.CalculateResponse
-	18, // 40: ziwei.v1.ZiweiService.ListRecords:output_type -> ziwei.v1.ListRecordsResponse
-	20, // 41: ziwei.v1.ZiweiService.CreateRecord:output_type -> ziwei.v1.CreateRecordResponse
-	22, // 42: ziwei.v1.ZiweiService.DeleteRecord:output_type -> ziwei.v1.DeleteRecordResponse
-	25, // 43: ziwei.v1.ZiweiService.ListTags:output_type -> ziwei.v1.ListTagsResponse
-	39, // [39:44] is the sub-list for method output_type
-	34, // [34:39] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	3,  // 18: ziwei.v1.PalaceData.assistant_star_details:type_name -> ziwei.v1.PalaceStar
+	4,  // 19: ziwei.v1.PalaceTransformGroup.transforms:type_name -> ziwei.v1.TransformData
+	4,  // 20: ziwei.v1.DaYunData.transforms:type_name -> ziwei.v1.TransformData
+	14, // 21: ziwei.v1.InterpretationData.karmic_narrative:type_name -> ziwei.v1.KarmicStep
+	15, // 22: ziwei.v1.InterpretationData.san_fang_diagnosis:type_name -> ziwei.v1.SanFangRole
+	10, // 23: ziwei.v1.InterpretationData.star_details:type_name -> ziwei.v1.DeepStarAnalysis
+	11, // 24: ziwei.v1.InterpretationData.origin_fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
+	13, // 25: ziwei.v1.InterpretationData.temporal_resonance:type_name -> ziwei.v1.ResonancePoint
+	12, // 26: ziwei.v1.FlyHuaAnalysis.stages:type_name -> ziwei.v1.FlyStage
+	16, // 27: ziwei.v1.ListRecordsResponse.records:type_name -> ziwei.v1.BirthRecord
+	16, // 28: ziwei.v1.CreateRecordResponse.record:type_name -> ziwei.v1.BirthRecord
+	23, // 29: ziwei.v1.ListTagsResponse.tags:type_name -> ziwei.v1.Tag
+	2,  // 30: ziwei.v1.CalculateResponse.PalacesEntry.value:type_name -> ziwei.v1.PalaceData
+	6,  // 31: ziwei.v1.CalculateResponse.DaYunPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	6,  // 32: ziwei.v1.CalculateResponse.LiuNianPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	6,  // 33: ziwei.v1.CalculateResponse.LiuYuePalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	6,  // 34: ziwei.v1.CalculateResponse.LiuRiPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	0,  // 35: ziwei.v1.ZiweiService.Calculate:input_type -> ziwei.v1.CalculateRequest
+	17, // 36: ziwei.v1.ZiweiService.ListRecords:input_type -> ziwei.v1.ListRecordsRequest
+	19, // 37: ziwei.v1.ZiweiService.CreateRecord:input_type -> ziwei.v1.CreateRecordRequest
+	21, // 38: ziwei.v1.ZiweiService.DeleteRecord:input_type -> ziwei.v1.DeleteRecordRequest
+	24, // 39: ziwei.v1.ZiweiService.ListTags:input_type -> ziwei.v1.ListTagsRequest
+	1,  // 40: ziwei.v1.ZiweiService.Calculate:output_type -> ziwei.v1.CalculateResponse
+	18, // 41: ziwei.v1.ZiweiService.ListRecords:output_type -> ziwei.v1.ListRecordsResponse
+	20, // 42: ziwei.v1.ZiweiService.CreateRecord:output_type -> ziwei.v1.CreateRecordResponse
+	22, // 43: ziwei.v1.ZiweiService.DeleteRecord:output_type -> ziwei.v1.DeleteRecordResponse
+	25, // 44: ziwei.v1.ZiweiService.ListTags:output_type -> ziwei.v1.ListTagsResponse
+	40, // [40:45] is the sub-list for method output_type
+	35, // [35:40] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_ziwei_proto_init() }

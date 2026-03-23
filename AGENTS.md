@@ -253,7 +253,9 @@ index := (base + offset) % 12
 3. Update `ZiweiChart` struct in `engine.go`
 4. Update `String()` method for output
 5. If adding new API fields: update `proto/ziwei.proto` and regenerate gRPC code
-6. If adding new API fields: update `pkg/service/grpc_server.go` conversion logic
+6. If adding new API fields: update **BOTH**:
+   - `pkg/service/grpc_server.go` (gRPC conversion logic)
+   - `cmd/ziwei-server/main.go` (REST conversion logic in `mapChartToResponse`)
 7. Test with CLI: `go run ./cmd/ziwei-cli/main.go -year 1990 -month 6 -day 15 -hour 10`
 8. Test with server: `go run ./cmd/ziwei-server/main.go` then verify REST + gRPC
 
@@ -287,4 +289,87 @@ Detailed package-specific guidance available in:
 - `pkg/basis/AGENTS.md` - Core definitions and constants
 - `pkg/engine/AGENTS.md` - Calculation algorithms and business logic  
 - `pkg/service/AGENTS.md` - Shared services and protocol handling
-- `web/AGENTS.md` - React frontend components and styling
+- `web/AGENTS.md` - React frontend components and styling, including **UI/UX Skills** for palace chart display
+
+---
+
+## LESSONS LEARNED - 重要實踐經驗
+
+> **注意**：以下為簡要總結，詳細技能文檔請參見 `.ziwei-skills/` 目錄。
+
+### 紫微斗數核心技能索引
+
+修改代碼前，**必須**閱讀對應技能文件：
+
+| 主題 | 技能文件 | 重要性 |
+|------|---------|--------|
+| **宮位映射計算** | `.ziwei-skills/03-CHARTING/02-PALACE_CYCLE.md` | ⭐⭐⭐ 極重要 |
+| **星曜亮度系統** | `.ziwei-skills/02-STARS/04-BRIGHTNESS.md` | ⭐⭐⭐ 極重要 |
+| **四化飛星** | `.ziwei-skills/03-CHARTING/04-FLY_HUA.md` | ⭐⭐⭐ 極重要 |
+| **三方四正** | `.ziwei-skills/03-CHARTING/03-SANFANG_SIZHENG.md` | ⭐⭐⭐ 極重要 |
+| **大限流年** | `.ziwei-skills/04-TEMPORAL/` | ⭐⭐ 重要 |
+
+### Critical UI Patterns（不可違反）
+
+#### 1. 宮位變化映射公式（必須正確）
+```typescript
+// ✅ 正確：從新基準宮位看當前宮位
+const shifted = palaceCycle[(baseIndex - sourceIndex + 12) % 12];
+
+// ❌ 錯誤：方向相反（會導致宮名映射錯誤）
+const shifted = palaceCycle[(sourceIndex - baseIndex + 12) % 12];
+```
+> 📖 詳見：`.ziwei-skills/03-CHARTING/02-PALACE_CYCLE.md`
+
+#### 2. 星曜亮度規範（所有星曜都有亮度）
+- **十四主星**、**六吉星**、**祿存天馬**、**六煞星** 都有亮度
+- 亮度必須緊跟星曜名稱顯示：`紫微星 廟`、`左輔星 旺`
+- 後端通過 `assistant_star_details` 欄位傳遞亮度資訊
+- 亮度查詢函數：
+  - 主星：`BrightnessLevel(star, branch)`
+  - 六吉星：`AuspiciousBrightnessLevel(star, branch)`
+  - 祿存天馬：`LuCunBrightnessLevel(star, branch)`
+  - 六煞星：`MaleficBrightnessLevel(star, branch)`
+> 📖 詳見：`.ziwei-skills/02-STARS/04-BRIGHTNESS.md`
+
+#### 3. 星曜層級與顯示
+- **六吉星**（左輔、右弼、文昌、文曲、天魁、天鉞）必須單獨列顯示，與主星同級
+- 不可與其他雜星（火星、鈴星等）混排成一列
+> 📖 詳見：`.ziwei-skills/02-STARS/02-ASSISTANT_STARS.md`
+
+#### 4. 四化顯示規範
+- **生年四化**（紅色）：本命盤固定不變
+- **本宮飛化**（金色）：該宮天干對本宮星曜
+- **選中宮位飛化**（紫色）：動態計算，影響所有宮位
+> 📖 詳見：`.ziwei-skills/03-CHARTING/04-FLY_HUA.md`
+
+#### 5. API 欄位更新規範（REST & gRPC 必須同步）
+新增欄位時必須同時更新：
+1. `proto/ziwei.proto` - Protocol Buffer 定義
+2. `pkg/api/v1/types.go` - Go 類型定義
+3. `pkg/service/grpc_server.go` - gRPC 轉換邏輯
+4. `cmd/ziwei-server/main.go` - REST 轉換邏輯
+
+> 📖 詳見：`pkg/service/AGENTS.md`
+  assistantStarDetails = append(assistantStarDetails, &pb.PalaceStar{
+    Name: starName, Brightness: brightness,
+  })
+}
+```
+
+4. **REST API 處理器** (`cmd/ziwei-server/main.go`):
+```go
+assistantStarDetails := make([]v1.PalaceStar, 0)
+for _, s := range chart.AssistantStars[b] {
+  // 根據星曜類型獲取亮度（與 gRPC 相同邏輯）
+  ...
+}
+palaces[pType.String()] = v1.PalaceData{
+  ...
+  AssistantStarDetails: assistantStarDetails,
+}
+```
+
+**常見錯誤**：只更新 gRPC 而遺漏 REST API，導致網頁無法顯示新欄位。
+
+參見 `web/AGENTS.md` 完整規範。

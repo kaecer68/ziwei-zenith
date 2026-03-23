@@ -53,6 +53,56 @@ func BrightnessLevel(s Star, b Branch) Brightness {
 	return BrightnessWang
 }
 
+// 六吉星亮度表：左輔、右弼、文昌、文曲、天魁、天鉞
+// 子  丑  寅  卯  辰  巳  午  未  申  酉  戌  亥
+var AuspiciousStarBrightnessTable = map[AuspiciousStar][]Brightness{
+	AuspiciousZuofu:    {W, M, D, W, M, D, W, M, D, W, M, D}, // 左輔
+	AuspiciousYoubi:    {D, W, M, D, W, M, D, W, M, D, W, M}, // 右弼
+	AuspiciousWenchang: {X, X, W, M, D, D, W, M, D, D, W, X}, // 文昌
+	AuspiciousWenqu:    {W, M, D, D, W, X, X, W, M, D, D, W}, // 文曲
+	AuspiciousTiankui:  {M, M, M, M, M, M, M, M, M, M, M, M}, // 天魁(固定旺)
+	AuspiciousTianyue:  {M, M, M, M, M, M, M, M, M, M, M, M}, // 天鉞(固定旺)
+}
+
+func AuspiciousBrightnessLevel(s AuspiciousStar, b Branch) Brightness {
+	if table, ok := AuspiciousStarBrightnessTable[s]; ok {
+		return table[int(b)]
+	}
+	return BrightnessWang
+}
+
+// 祿存、天馬亮度表
+// 子  丑  寅  卯  辰  巳  午  未  申  酉  戌  亥
+var LuCunStarBrightnessTable = map[LuCunStar][]Brightness{
+	LuCun:  {M, M, W, D, D, W, M, M, W, D, D, W}, // 祿存
+	Tianma: {W, D, M, M, D, W, M, M, D, W, M, D}, // 天馬
+}
+
+func LuCunBrightnessLevel(s LuCunStar, b Branch) Brightness {
+	if table, ok := LuCunStarBrightnessTable[s]; ok {
+		return table[int(b)]
+	}
+	return BrightnessWang
+}
+
+// 六煞星亮度表：擎羊、陀羅、火星、鈴星、地空、地劫
+// 子  丑  寅  卯  辰  巳  午  未  申  酉  戌  亥
+var MaleficStarBrightnessTable = map[MaleficStar][]Brightness{
+	MaleficQingyang: {X, M, W, D, D, W, M, X, W, D, D, W}, // 擎羊
+	MaleficTuoluo:   {W, D, D, W, M, X, W, D, D, W, M, X}, // 陀羅
+	MaleficHuoxing:  {W, D, M, X, W, D, M, D, W, X, W, D}, // 火星
+	MaleficLingxing: {D, W, X, W, D, M, D, W, X, W, D, M}, // 鈴星
+	MaleficDikong:   {P, P, P, P, P, P, P, P, P, P, P, P}, // 地空(固定平)
+	MaleficDijie:    {P, P, P, P, P, P, P, P, P, P, P, P}, // 地劫(固定平)
+}
+
+func MaleficBrightnessLevel(s MaleficStar, b Branch) Brightness {
+	if table, ok := MaleficStarBrightnessTable[s]; ok {
+		return table[int(b)]
+	}
+	return BrightnessWang
+}
+
 type StarBrightness struct {
 	Star       Star
 	Branch     Branch

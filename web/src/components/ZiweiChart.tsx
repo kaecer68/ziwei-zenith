@@ -27,6 +27,10 @@ interface PalaceData {
     brightness?: string;
   }>;
   assistant_stars?: string[];
+  assistant_star_details?: Array<{
+    name: string;
+    brightness?: string;
+  }>;
   secondary_stars?: string[];
   chang_sheng?: string;
   bo_shi?: string;
@@ -98,10 +102,14 @@ const resolveShiftedPalace = (sourcePalace: string, newBasePalace: string): stri
   const sourceIndex = palaceCycle.indexOf(sourcePalace);
   const baseIndex = palaceCycle.indexOf(newBasePalace);
   if (sourceIndex === -1 || baseIndex === -1) return null;
-  return palaceCycle[(sourceIndex - baseIndex + 12) % 12];
+  // 從 newBasePalace 的角度看 sourcePalace 是什麼宮
+  // 計算相對位置：(base 到 source 的順時針距離)
+  return palaceCycle[(baseIndex - sourceIndex + 12) % 12];
 };
 
 const mainStars = new Set(['紫微', '天機', '太陽', '武曲', '天同', '廉貞', '天府', '太陰', '貪狼', '巨門', '天相', '天梁', '七殺', '破軍']);
+
+const importantAuxStars = new Set(['左輔', '右弼', '文昌', '文曲', '天魁', '天鉞']);
 
 // 四化表：每個天干對應的化祿、化權、化科、化忌星曜
 const transformationTable: Record<string, { lu: string; quan: string; ke: string; ji: string }> = {
@@ -160,6 +168,23 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
 
   const [selectedPalaceName, setSelectedPalaceName] = useState<string>(originPalace || palaceEntries[0]?.palaceName || '命宮');
 
+  const selectedPalaceGan = useMemo(() => {
+    const entry = palaceEntries.find(e => e.palaceName === selectedPalaceName);
+    return entry?.palace_gan || '';
+  }, [selectedPalaceName, palaceEntries]);
+
+  const mappingBasePalace = selectedPalaceName;
+
+  const selectedPalaceFlyHua = useMemo(() => {
+    if (!selectedPalaceGan) return {} as Record<string, string>;
+    const allStarsInSystem = new Set<string>();
+    palaceEntries.forEach(entry => {
+      (entry.stars || []).forEach(star => allStarsInSystem.add(star));
+      (entry.assistant_stars || []).forEach(star => allStarsInSystem.add(star));
+    });
+    return calculatePalaceFlyHua(selectedPalaceGan, Array.from(allStarsInSystem));
+  }, [selectedPalaceGan, palaceEntries]);
+
   const formatTemporalBadge = (item: TemporalPositionSummary): string => {
     const timeText = item.timeGanzhi ? `${item.label} ${item.timeGanzhi}` : item.label;
     const landingText = item.branch ? `｜落宮：${item.branch}宮` : '';
@@ -167,7 +192,6 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
   };
 
   const selectedEntry = palaceEntries.find((entry) => entry.palaceName === selectedPalaceName) ?? palaceEntries[0];
-  const mappingBasePalace = '命宮';
   const selectedIndex = palaceCycle.indexOf(selectedEntry?.palaceName || '命宮');
   const sanFangSet = new Set<string>(
     selectedIndex >= 0
@@ -198,16 +222,16 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
   return (
     <div className={`ziwei-chart-container ${className}`}>
       <motion.div className="section-stack" initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="insight-grid" style={{ alignItems: 'start' }}>
-          <div className="card">
-            <div
-              className="palace-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                gridTemplateRows: 'repeat(4, minmax(120px, auto))',
-              }}
-            >
+        <div className="card" style={{ width: '100%' }}>
+          <div
+            className="palace-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+              gridTemplateRows: 'repeat(4, minmax(120px, auto))',
+              width: '100%',
+            }}
+          >
               {branchLayout.map(({ branch, area }) => {
                 const entry = branchToEntry.get(branch);
                 if (!entry) return null;
@@ -243,84 +267,151 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
                   <button
                     key={branch}
                     className={classNames.join(' ')}
-                    style={{ gridArea: area, textAlign: 'left', ...borderStyle }}
+                    style={{ 
+                      gridArea: area, 
+                      textAlign: 'left', 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      ...borderStyle 
+                    }}
                     onClick={() => setSelectedPalaceName(entry.palaceName)}
                   >
                     <div className="palace-cell-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', alignItems: 'flex-start' }}>
-                      <div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-soft)' }}>{entry.branch}宮 · {entry.palace_gan || ''}</div>
-                        <div>{entry.palaceName}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                           →{shiftedPalaceName || '—'}
-                         </div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{entry.palaceName}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>→{shiftedPalaceName || '—'}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                         {entry.palaceName === originPalace && <Crown size={14} color="var(--cta)" />}
-                        {entry.branch === mingGong && <span className="tab-button is-active">命</span>}
-                        {entry.branch === shenGong && <span className="tab-button">身</span>}
+                        {entry.branch === shenGong && <span className="tab-button" style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem' }}>身</span>}
                       </div>
                     </div>
 
-                    <div className="palace-cell-stars" style={{ display: 'grid', gap: '0.2rem' }}>
+                    <div className="palace-cell-stars" style={{ display: 'grid', gap: '0.2rem', fontSize: '0.9rem', flex: 1 }}>
                       {(() => {
                         const palaceGan = entry.palace_gan || '';
                         const allStars = entry.star_details && entry.star_details.length > 0
                           ? entry.star_details.map(s => s.name)
                           : entry.stars;
                         const flyHua = palaceGan ? calculatePalaceFlyHua(palaceGan, allStars) : {};
+                        const starToTransform = new Map<string, string>();
+                        (entry.natal_transforms || []).forEach(t => {
+                          starToTransform.set(t.star, t.transformation);
+                        });
 
-                        return (entry.star_details && entry.star_details.length > 0
+                        const starList = entry.star_details && entry.star_details.length > 0
                           ? entry.star_details
-                          : entry.stars.map((star) => ({ name: star } as { name: string; brightness?: string }))
-                        ).map((star) => {
-                          const transformation = flyHua[star.name];
-                          return (
-                            <div key={`${entry.palaceName}-${star.name}`} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'space-between' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                {mainStars.has(star.name) ? <Star size={12} color="var(--cta)" /> : <Sparkles size={12} color="var(--text-soft)" />}
-                                <span>
-                                  {star.name}
-                                  {transformation && (
-                                    <span style={{ color: 'var(--accent)', fontSize: '0.7rem', marginLeft: '0.2rem' }}>
-                                      【{entry.palaceName}{transformation}】
+                          : entry.stars.map((star) => ({ name: star } as { name: string; brightness?: string }));
+
+                        // 輔星和煞星現在從 assistant_star_details 獲取，包含亮度資訊
+                        const assistantStarList = entry.assistant_star_details && entry.assistant_star_details.length > 0
+                          ? entry.assistant_star_details
+                          : (entry.assistant_stars || []).map((star) => ({ name: star } as { name: string; brightness?: string }));
+
+                        const mainStarList = starList.filter(s => mainStars.has(s.name));
+                        const importantAuxFromStars = starList.filter(s => importantAuxStars.has(s.name));
+                        const importantAuxFromAssistant = assistantStarList
+                          .filter(s => importantAuxStars.has(s.name));
+                        const importantStars = [...mainStarList, ...importantAuxFromStars, ...importantAuxFromAssistant];
+                        const otherAuxStars = assistantStarList.filter(s => !importantAuxStars.has(s.name));
+
+                        return (
+                          <>
+                            {importantStars.map((star) => {
+                              const localFlyTransformation = flyHua[star.name];
+                              const natalTransformation = starToTransform.get(star.name);
+                              const selectedFlyTransformation = selectedPalaceFlyHua[star.name];
+                              const isMainStar = mainStars.has(star.name);
+                              const isSelectedPalace = entry.palaceName === selectedPalaceName;
+                              return (
+                                <div key={`${entry.palaceName}-${star.name}`} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  {isMainStar ? <Star size={12} color="var(--cta)" /> : <Sparkles size={12} color="var(--secondary)" />}
+                                  <span style={{
+                                    fontWeight: isMainStar ? 600 : 500,
+                                    color: isMainStar ? 'var(--primary)' : 'var(--secondary)'
+                                  }}>
+                                    {star.name}
+                                  </span>
+                                  {star.brightness && (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                      {star.brightness}
                                     </span>
                                   )}
-                                </span>
-                              </span>
-                              {star.brightness ? <span style={{ color: 'var(--accent)', fontSize: '0.72rem' }}>{star.brightness}</span> : null}
-                            </div>
-                          );
-                        });
+                                  {natalTransformation && (
+                                    <span style={{
+                                      color: 'var(--accent)',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      background: 'rgba(163, 63, 47, 0.1)',
+                                      padding: '0 0.2rem',
+                                      borderRadius: '0.15rem',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {natalTransformation}
+                                    </span>
+                                  )}
+                                  {isSelectedPalace && localFlyTransformation && (
+                                    <span style={{
+                                      color: 'var(--cta)',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      飛{localFlyTransformation}
+                                    </span>
+                                  )}
+                                  {!isSelectedPalace && selectedFlyTransformation && (
+                                    <span style={{
+                                      color: '#7c3aed',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      background: 'rgba(124, 58, 237, 0.1)',
+                                      padding: '0 0.2rem',
+                                      borderRadius: '0.15rem',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {selectedPalaceName}{selectedFlyTransformation}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {otherAuxStars.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem', marginTop: '0.15rem' }}>
+                                {otherAuxStars.map((star) => (
+                                  <span key={`${entry.palaceName}-assistant-${star.name}`} style={{ color: 'var(--secondary)', fontSize: '0.8rem' }}>
+                                    {star.name}{star.brightness ? ` ${star.brightness}` : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {entry.secondary_stars && entry.secondary_stars.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.2rem' }}>
+                                {entry.secondary_stars.map((star) => (
+                                  <span key={`${entry.palaceName}-secondary-${star}`} style={{ color: 'var(--text-soft)', fontSize: '0.75rem' }}>{star}</span>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        );
                       })()}
-                      {(entry.assistant_stars || []).map((star) => (
-                        <div key={`${entry.palaceName}-assistant-${star}`} style={{ color: 'var(--secondary)' }}>{star}</div>
-                      ))}
-                      {(entry.secondary_stars || []).map((star) => (
-                        <div key={`${entry.palaceName}-secondary-${star}`} style={{ color: 'var(--text-soft)' }}>{star}</div>
-                      ))}
                     </div>
 
-                    {(entry.natal_transforms?.length || highlightLabels.length || entry.da_yun_ages?.length) ? (
-                      <div style={{ marginTop: '0.65rem', display: 'grid', gap: '0.35rem' }}>
-                        <div className="tab-row">
-                          {(entry.natal_transforms || []).map((item) => (
-                            <span key={item.display} className="tab-button is-active">{item.display}</span>
-                          ))}
-                          {highlightLabels.map((label) => (
-                            <span key={`${entry.palaceName}-${label}`} className="tab-button">{label}</span>
-                          ))}
-                        </div>
-                        {entry.da_yun_ages && entry.da_yun_ages.length > 0 && (
-                          <div className="body-sm" style={{ color: 'var(--secondary)' }}>大限：{entry.da_yun_ages.join('、')}</div>
-                        )}
-                      </div>
-                    ) : null}
-
-                    {(entry.chang_sheng || entry.bo_shi) && (
-                      <div className="body-sm" style={{ marginTop: '0.45rem', color: 'var(--text-muted)' }}>
-                        {entry.chang_sheng ? `${entry.chang_sheng}` : ''}{entry.chang_sheng && entry.bo_shi ? ' · ' : ''}{entry.bo_shi ? `${entry.bo_shi}` : ''}
+{highlightLabels.length > 0 && (
+                      <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem', justifyContent: 'flex-end' }}>
+                        {highlightLabels.map((label) => (
+                          <span key={`${entry.palaceName}-${label}`} className="tab-button" style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>{label}</span>
+                        ))}
                       </div>
                     )}
+
+                    <div style={{ marginTop: 'auto', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.72rem', color: 'var(--text-soft)', borderTop: '1px solid rgba(178, 135, 70, 0.1)', width: '100%' }}>
+                      <span style={{ flex: 1, textAlign: 'left' }}>{entry.palace_gan || '—'}·{entry.branch}宮</span>
+                      {entry.da_yun_ages && entry.da_yun_ages.length > 0 && (
+                        <span style={{ flex: 1, textAlign: 'center', color: 'var(--secondary)', fontWeight: 500 }}>{entry.da_yun_ages.join('、')}</span>
+                      )}
+                      <span style={{ flex: 1, textAlign: 'right' }}>{entry.chang_sheng || ''}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -361,10 +452,35 @@ const ZiweiChart: React.FC<ZiweiChartProps> = ({
                   ))}
                 </div>
                 <div className="body-sm">來因宮：{originPalace} · 命宮地支：{mingGong} · 身宮地支：{shenGong}</div>
+                {selectedPalaceGan && (
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    padding: '0.5rem', 
+                    background: 'rgba(124, 58, 237, 0.08)', 
+                    borderRadius: '0.5rem',
+                    border: '1px solid rgba(124, 58, 237, 0.2)'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginBottom: '0.25rem' }}>
+                      {selectedPalaceName}宮干{selectedPalaceGan}飛化四化
+                    </div>
+                    <div className="tab-row" style={{ justifyContent: 'center' }}>
+                      {Object.entries(selectedPalaceFlyHua).slice(0, 4).map(([star, trans]) => (
+                        <span key={`fly-${star}`} className="tab-button" style={{ 
+                          fontSize: '0.7rem', 
+                          padding: '0.15rem 0.4rem',
+                          background: 'rgba(124, 58, 237, 0.15)',
+                          color: '#7c3aed',
+                          border: '1px solid rgba(124, 58, 237, 0.3)'
+                        }}>
+                          {star}{trans}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
       </motion.div>
     </div>
   );

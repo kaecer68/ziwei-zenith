@@ -53,9 +53,12 @@ const resolveShiftedPalace = (sourcePalace, newBasePalace) => {
   const sourceIndex = palaceCycle.indexOf(sourcePalace);
   const baseIndex = palaceCycle.indexOf(newBasePalace);
   if (sourceIndex === -1 || baseIndex === -1) return null;
-  return palaceCycle[(sourceIndex - baseIndex + 12) % 12];
+  // 正確公式：從 newBasePalace 的角度看 sourcePalace 是什麼宮
+  return palaceCycle[(baseIndex - sourceIndex + 12) % 12];
 };
 ```
+
+> ⚠️ **重要**：公式必須是 `(baseIndex - sourceIndex)` 而不是 `(sourceIndex - baseIndex)`，方向相反會導致宮位映射錯誤！
 
 ---
 

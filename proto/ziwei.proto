@@ -73,6 +73,7 @@ message PalaceData {
   repeated TransformData liu_ri_transforms = 15;
   repeated string da_yun_ages = 16;
   FlyHuaAnalysis fly_hua = 17;
+  repeated PalaceStar assistant_star_details = 18;
 }
 
 message PalaceStar {
