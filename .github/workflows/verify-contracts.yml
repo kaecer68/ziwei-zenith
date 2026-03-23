@@ -24,7 +24,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/destiny-contracts
           path: destiny-contracts
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.DESTINY_CONTRACTS_TOKEN || secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Check if contracts were checked out
