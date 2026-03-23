@@ -18,27 +18,45 @@ jobs:
       - name: Checkout ziwei-zenith
         uses: actions/checkout@v4
 
-      - name: Checkout destiny-contracts (private repo)
+      - name: Try to checkout destiny-contracts
+        id: checkout-contracts
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/destiny-contracts
           path: destiny-contracts
-          token: ${{ github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
+      - name: Check if contracts were checked out
+        id: check-contracts
+        run: |
+          if [ -d "destiny-contracts" ] && [ -f "destiny-contracts/runtime/ports.env" ]; then
+            echo "Contracts directory found"
+            echo "contracts_exist=true" >> $GITHUB_OUTPUT
+          else
+            echo "Contracts directory NOT found or incomplete"
+            echo "contracts_exist=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup Go
+        if: steps.check-contracts.outputs.contracts_exist == 'true'
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
       - name: Verify contract sync
+        if: steps.check-contracts.outputs.contracts_exist == 'true'
         env:
           CONTRACT_PORTS_FILE: ${{ github.workspace }}/destiny-contracts/runtime/ports.env
         run: |
-          if [ -d "destiny-contracts" ]; then
-            chmod +x scripts/sync-contracts.sh
-            make verify-contracts
-          else
-            echo "⚠️ destiny-contracts not accessible (private repo), skipping contract verification"
-            echo "Contracts are assumed to be in sync."
-          fi
+          chmod +x scripts/sync-contracts.sh
+          make verify-contracts
+
+      - name: Skip contract verification
+        if: steps.check-contracts.outputs.contracts_exist != 'true'
+        run: |
+          echo "⚠️ destiny-contracts repository not accessible or does not exist"
+          echo "   - Repository: ${{ github.repository_owner }}/destiny-contracts"
+          echo "   - This is expected if the repository is private and no token is configured"
+          echo "   - Continuing without contract verification"
+          echo "✅ Build will continue normally"
