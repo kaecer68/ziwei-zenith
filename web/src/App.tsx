@@ -32,20 +32,22 @@ interface PalaceData {
     transformation: string;
     display: string;
   }>;
-  liu_nian_stars?: string[];
-  liu_nian_transforms?: Array<{
+  dayun_transforms?: Array<{
     star: string;
     transformation: string;
     display: string;
   }>;
-  liu_yue_stars?: string[];
-  liu_yue_transforms?: Array<{
+  liunian_transforms?: Array<{
     star: string;
     transformation: string;
     display: string;
   }>;
-  liu_ri_stars?: string[];
-  liu_ri_transforms?: Array<{
+  liuyue_transforms?: Array<{
+    star: string;
+    transformation: string;
+    display: string;
+  }>;
+  liuri_transforms?: Array<{
     star: string;
     transformation: string;
     display: string;
@@ -218,11 +220,24 @@ const ResultsPage = ({
   
   // 大限切換狀態
   const [currentDaYunIndex, setCurrentDaYunIndex] = useState<number>(0);
+  interface TransformData {
+    star: string;
+    transformation: string;
+    display: string;
+  }
   const [currentTemporalData, setCurrentTemporalData] = useState<{
     da_yun: typeof data.current_da_yun;
     liu_nian: typeof data.liu_nian;
     liu_yue: typeof data.liu_yue;
     liu_ri: typeof data.liu_ri;
+    lunar_year?: number;
+    lunar_month?: number;
+    lunar_day?: number;
+    lunar_days?: number[];
+    da_yun_palace_transforms?: Record<string, TransformData[]>;
+    liu_nian_palace_transforms?: Record<string, TransformData[]>;
+    liu_yue_palace_transforms?: Record<string, TransformData[]>;
+    liu_ri_palace_transforms?: Record<string, TransformData[]>;
   } | null>(null);
   const [targetDate, setTargetDate] = useState<Date>(() => new Date());
   const [isTemporalLoading, setIsTemporalLoading] = useState(false);
@@ -230,6 +245,11 @@ const ResultsPage = ({
   const targetYear = targetDate.getFullYear();
   const targetMonth = targetDate.getMonth() + 1;
   const targetDay = targetDate.getDate();
+
+  // 農曆年月（來自 API 回傳）
+  const displayLunarMonth = currentTemporalData?.lunar_month;
+  const displayLunarDay = currentTemporalData?.lunar_day;
+  const hasLunarData = displayLunarMonth && displayLunarDay;
 
   const getEffectiveFlowYear = useCallback((date: Date) => {
     const month = date.getMonth() + 1;
@@ -302,16 +322,104 @@ const ResultsPage = ({
     fetchTemporalData(currentDaYunIndex, targetYear, targetMonth, targetDay);
   }, [currentDaYunIndex, targetYear, targetMonth, targetDay, fetchTemporalData]);
 
-  // 切換大限的函數
+  useEffect(() => {
+    if (!focusedPalace || !currentTemporalData) return;
+    
+    const temporalLabels = ['大限', '流年', '流月', '流日'];
+    if (!temporalLabels.some(label => focusedPalace.label.includes(label))) return;
+    
+    let updated = false;
+    let newPalace = focusedPalace.palaceName;
+    let newBranch = focusedPalace.branch;
+    let newTemporalInfo = focusedPalace.temporalInfo;
+    
+    if (focusedPalace.label.includes('大限') && currentTemporalData.da_yun) {
+      newPalace = currentTemporalData.da_yun.palace;
+      newBranch = currentTemporalData.da_yun.branch;
+      newTemporalInfo = {
+        stem: currentTemporalData.da_yun.stem,
+        ageRange: `${currentTemporalData.da_yun.start_age}-${currentTemporalData.da_yun.end_age}歲`,
+        timeLabel: `${effectiveFlowYear}流年`,
+      };
+      updated = true;
+    } else if (focusedPalace.label.includes('流年') && currentTemporalData.liu_nian) {
+      newPalace = currentTemporalData.liu_nian.palace;
+      newBranch = currentTemporalData.liu_nian.branch;
+      newTemporalInfo = {
+        stem: currentTemporalData.liu_nian.stem,
+        timeBranch: currentTemporalData.liu_nian.time_branch,
+        timeLabel: `${effectiveFlowYear}年`,
+      };
+      updated = true;
+    } else if (focusedPalace.label.includes('流月') && currentTemporalData.liu_yue) {
+      newPalace = currentTemporalData.liu_yue.palace;
+      newBranch = currentTemporalData.liu_yue.branch;
+      newTemporalInfo = {
+        stem: currentTemporalData.liu_yue.stem,
+        timeBranch: currentTemporalData.liu_yue.time_branch,
+        timeLabel: `農曆${currentTemporalData.lunar_month}月`,
+      };
+      updated = true;
+    } else if (focusedPalace.label.includes('流日') && currentTemporalData.liu_ri) {
+      newPalace = currentTemporalData.liu_ri.palace;
+      newBranch = currentTemporalData.liu_ri.branch;
+      newTemporalInfo = {
+        stem: currentTemporalData.liu_ri.stem,
+        timeBranch: currentTemporalData.liu_ri.time_branch,
+        timeLabel: `農曆${currentTemporalData.lunar_month}月${currentTemporalData.lunar_day}日`,
+      };
+      updated = true;
+    }
+    
+    if (updated) {
+      setFocusedPalace({
+        ...focusedPalace,
+        palaceName: newPalace,
+        branch: newBranch,
+        temporalInfo: newTemporalInfo,
+      });
+    }
+  }, [currentTemporalData, effectiveFlowYear]);
+
   const handlePrevDaYun = () => {
-    if (currentDaYunIndex > 0) {
-      setCurrentDaYunIndex(currentDaYunIndex - 1);
+    if (currentDaYunIndex > 0 && userInfo && data.da_yun) {
+      const newIndex = currentDaYunIndex - 1;
+      setCurrentDaYunIndex(newIndex);
+      
+      const selectedDaYun = data.da_yun[newIndex];
+      const startYear = userInfo.year + selectedDaYun.start_age - 1;
+      const endYear = userInfo.year + selectedDaYun.end_age - 1;
+      
+      setTargetDate((prev) => {
+        const currentYear = prev.getFullYear();
+        if (currentYear >= startYear && currentYear <= endYear) {
+          return prev;
+        }
+        const next = new Date(prev);
+        next.setFullYear(startYear);
+        return next;
+      });
     }
   };
 
   const handleNextDaYun = () => {
-    if (data.da_yun && currentDaYunIndex < data.da_yun.length - 1) {
-      setCurrentDaYunIndex(currentDaYunIndex + 1);
+    if (data.da_yun && currentDaYunIndex < data.da_yun.length - 1 && userInfo) {
+      const newIndex = currentDaYunIndex + 1;
+      setCurrentDaYunIndex(newIndex);
+      
+      const selectedDaYun = data.da_yun[newIndex];
+      const startYear = userInfo.year + selectedDaYun.start_age - 1;
+      const endYear = userInfo.year + selectedDaYun.end_age - 1;
+      
+      setTargetDate((prev) => {
+        const currentYear = prev.getFullYear();
+        if (currentYear >= startYear && currentYear <= endYear) {
+          return prev;
+        }
+        const next = new Date(prev);
+        next.setFullYear(startYear);
+        return next;
+      });
     }
   };
 
@@ -324,50 +432,12 @@ const ResultsPage = ({
     const endYear = userInfo.year + selectedDaYun.end_age - 1;
 
     setTargetDate((prev) => {
-      const flowYear = getEffectiveFlowYear(prev);
-      if (flowYear >= startYear && flowYear <= endYear) return prev;
+      const currentYear = prev.getFullYear();
+      if (currentYear >= startYear && currentYear <= endYear) {
+        return prev;
+      }
       const next = new Date(prev);
       next.setFullYear(startYear);
-      return next;
-    });
-  };
-
-  const handleFlowYearSelect = (year: number) => {
-    setTargetDate((prev) => {
-      const next = new Date(prev);
-      next.setFullYear(year);
-      return next;
-    });
-  };
-
-  const handleFlowYearShift = (delta: number) => {
-    setTargetDate((prev) => {
-      const next = new Date(prev);
-      next.setFullYear(prev.getFullYear() + delta);
-      return next;
-    });
-  };
-
-  const handleFlowMonthSelect = (month: number) => {
-    setTargetDate((prev) => {
-      const currentDay = prev.getDate();
-      const next = new Date(prev);
-      next.setDate(1);
-      next.setMonth(month - 1);
-      const maxDay = new Date(next.getFullYear(), month, 0).getDate();
-      next.setDate(Math.min(currentDay, maxDay));
-      return next;
-    });
-  };
-
-  const handleFlowDaySelect = (selectedDate: Date) => {
-    setTargetDate(new Date(selectedDate));
-  };
-
-  const handleFlowDayShift = (delta: number) => {
-    setTargetDate((prev) => {
-      const next = new Date(prev);
-      next.setDate(prev.getDate() + delta * 12);
       return next;
     });
   };
@@ -407,34 +477,6 @@ const ResultsPage = ({
     return `${temporal.stem}${temporal.time_branch}`;
   };
 
-  const flowYearOptions = useMemo(() => {
-    if (!selectedDaYun || !userInfo) return [] as number[];
-    return Array.from(
-      { length: selectedDaYun.end_age - selectedDaYun.start_age + 1 },
-      (_, i) => userInfo.year + selectedDaYun.start_age - 1 + i,
-    );
-  }, [selectedDaYun, userInfo]);
-
-  const flowMonthOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
-
-  const flowDayOptions = useMemo(() => {
-    return Array.from({ length: 12 }, (_, i) => {
-      const dayOffset = i - 5;
-      const optionDate = new Date(targetDate);
-      optionDate.setDate(targetDate.getDate() + dayOffset);
-      const isCurrentMonth =
-        optionDate.getFullYear() === targetDate.getFullYear() &&
-        optionDate.getMonth() === targetDate.getMonth();
-
-      return {
-        date: optionDate,
-        day: optionDate.getDate(),
-        month: optionDate.getMonth() + 1,
-        isCurrentMonth,
-      };
-    });
-  }, [targetDate]);
-
   const temporalLayers = [
     {
       label: '大限',
@@ -458,7 +500,7 @@ const ResultsPage = ({
       branch: displayLiuYue?.branch,
       stem: displayLiuYue?.stem,
       timeBranch: displayLiuYue?.time_branch,
-      timeLabel: `${targetMonth}月`,
+      timeLabel: `農曆${displayLunarMonth}月`,
     },
     {
       label: '流日',
@@ -466,7 +508,7 @@ const ResultsPage = ({
       branch: displayLiuRi?.branch,
       stem: displayLiuRi?.stem,
       timeBranch: displayLiuRi?.time_branch,
-      timeLabel: `${targetMonth}月${targetDay}日`,
+      timeLabel: `農曆${displayLunarMonth}月${displayLunarDay}日`,
     },
   ];
 
@@ -502,7 +544,7 @@ const ResultsPage = ({
         palace: displayLiuYue.palace,
         branch: displayLiuYue.branch,
         timeGanzhi: formatTemporalGanzhi(displayLiuYue),
-        detail: `${targetMonth}月`,
+        detail: `農曆${displayLunarMonth}月`,
       });
     }
 
@@ -513,7 +555,7 @@ const ResultsPage = ({
         palace: displayLiuRi.palace,
         branch: displayLiuRi.branch,
         timeGanzhi: formatTemporalGanzhi(displayLiuRi),
-        detail: `${targetMonth}月${targetDay}日`,
+        detail: `農曆${displayLunarMonth}月${displayLunarDay}日`,
       });
     }
 
@@ -590,30 +632,54 @@ const ResultsPage = ({
       });
     }
 
-    if (displayLiuYue) {
+    if (displayLiuYue && hasLunarData) {
       items.push({
-        label: `流月（${formatTemporalGanzhi(displayLiuYue)}｜落宮：${displayLiuYue.branch}宮 · ${targetMonth}月）`,
+        label: `流月（${formatTemporalGanzhi(displayLiuYue)}｜落宮：${displayLiuYue.branch}宮 · 農曆${displayLunarMonth}月）`,
         value: displayLiuYue.palace,
         palace: displayLiuYue.palace,
         branch: displayLiuYue.branch,
         temporalInfo: {
           stem: displayLiuYue.stem,
           timeBranch: displayLiuYue.time_branch,
-          timeLabel: `${targetMonth}月`,
+          timeLabel: `農曆${displayLunarMonth}月`,
+        },
+      });
+    } else if (displayLiuYue && isTemporalLoading) {
+      items.push({
+        label: `流月（${formatTemporalGanzhi(displayLiuYue)}｜落宮：${displayLiuYue.branch}宮 · 計算中...）`,
+        value: displayLiuYue.palace,
+        palace: displayLiuYue.palace,
+        branch: displayLiuYue.branch,
+        temporalInfo: {
+          stem: displayLiuYue.stem,
+          timeBranch: displayLiuYue.time_branch,
+          timeLabel: '計算中...',
         },
       });
     }
 
-    if (displayLiuRi) {
+    if (displayLiuRi && hasLunarData) {
       items.push({
-        label: `流日（${formatTemporalGanzhi(displayLiuRi)}｜落宮：${displayLiuRi.branch}宮 · ${targetMonth}月${targetDay}日）`,
+        label: `流日（${formatTemporalGanzhi(displayLiuRi)}｜落宮：${displayLiuRi.branch}宮 · 農曆${displayLunarMonth}月${displayLunarDay}日）`,
         value: displayLiuRi.palace,
         palace: displayLiuRi.palace,
         branch: displayLiuRi.branch,
         temporalInfo: {
           stem: displayLiuRi.stem,
           timeBranch: displayLiuRi.time_branch,
-          timeLabel: `${targetMonth}月${targetDay}日`,
+          timeLabel: `農曆${displayLunarMonth}月${displayLunarDay}日`,
+        },
+      });
+    } else if (displayLiuRi && isTemporalLoading) {
+      items.push({
+        label: `流日（${formatTemporalGanzhi(displayLiuRi)}｜落宮：${displayLiuRi.branch}宮 · 計算中...）`,
+        value: displayLiuRi.palace,
+        palace: displayLiuRi.palace,
+        branch: displayLiuRi.branch,
+        temporalInfo: {
+          stem: displayLiuRi.stem,
+          timeBranch: displayLiuRi.time_branch,
+          timeLabel: '計算中...',
         },
       });
     }
@@ -636,6 +702,35 @@ const ResultsPage = ({
 
     return items;
   }, [data, palaceByBranch, branchByPalace, currentTemporalData, targetMonth, targetDay, effectiveFlowYear]);
+
+  const dynamicPalaces = useMemo(() => {
+    const basePalaces = { ...data.palaces };
+    
+    if (!currentTemporalData) {
+      return basePalaces;
+    }
+    
+    const result: Record<string, PalaceData> = {};
+    
+    Object.entries(basePalaces).forEach(([palaceName, palace]) => {
+      result[palaceName] = { ...palace };
+      
+      if (currentTemporalData.da_yun_palace_transforms?.[palaceName]) {
+        result[palaceName].dayun_transforms = currentTemporalData.da_yun_palace_transforms[palaceName];
+      }
+      if (currentTemporalData.liu_nian_palace_transforms?.[palaceName]) {
+        result[palaceName].liunian_transforms = currentTemporalData.liu_nian_palace_transforms[palaceName];
+      }
+      if (currentTemporalData.liu_yue_palace_transforms?.[palaceName]) {
+        result[palaceName].liuyue_transforms = currentTemporalData.liu_yue_palace_transforms[palaceName];
+      }
+      if (currentTemporalData.liu_ri_palace_transforms?.[palaceName]) {
+        result[palaceName].liuri_transforms = currentTemporalData.liu_ri_palace_transforms[palaceName];
+      }
+    });
+    
+    return result;
+  }, [data.palaces, currentTemporalData]);
 
   return (
     <div className="page-shell">
@@ -774,100 +869,29 @@ const ResultsPage = ({
               </div>
 
               <div className="card section-stack" style={{ marginTop: '0.75rem', gap: '0.65rem' }}>
-                <div className="heading-sm">流運直觀操作面板</div>
+                <div className="heading-sm">流運直觀操作面板 <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--text-soft)' }}>（陽曆日期）</span></div>
 
-                <div className="body-sm" style={{ color: 'var(--text-secondary)' }}>流年（10 年）</div>
+                <div className="body-sm" style={{ color: 'var(--text-secondary)' }}>選擇日期</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => handleFlowYearShift(-1)}
+                  <input
+                    type="date"
+                    value={`${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`}
+                    onChange={(e) => setTargetDate(new Date(e.target.value))}
                     disabled={isTemporalLoading}
-                    style={{ padding: '0.25rem 0.5rem' }}
-                    title="往前一年"
-                  >
-                    ←
-                  </button>
-                  <div className="tab-row" style={{ flexWrap: 'wrap', flex: 1 }}>
-                    {flowYearOptions.map((year) => {
-                      const selected = effectiveFlowYear === year;
-                      return (
-                        <button
-                          key={`flow-year-${year}`}
-                          className={`tab-button ${selected ? 'is-active' : ''}`}
-                          onClick={() => handleFlowYearSelect(year)}
-                          disabled={isTemporalLoading}
-                        >
-                          {year}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => handleFlowYearShift(1)}
-                    disabled={isTemporalLoading}
-                    style={{ padding: '0.25rem 0.5rem' }}
-                    title="往後一年"
-                  >
-                    →
-                  </button>
-                </div>
-
-                <div className="body-sm" style={{ color: 'var(--text-secondary)' }}>流月（12 月）</div>
-                <div className="tab-row" style={{ flexWrap: 'wrap', flex: 1 }}>
-                  {flowMonthOptions.map((month) => (
-                    <button
-                      key={`flow-month-${month}`}
-                      className={`tab-button ${targetMonth === month ? 'is-active' : ''}`}
-                      onClick={() => handleFlowMonthSelect(month)}
-                      disabled={isTemporalLoading}
-                    >
-                      {month}月
-                    </button>
-                  ))}
-                </div>
-
-                <div className="body-sm" style={{ color: 'var(--text-secondary)' }}>流日（12 格，當日居中）</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => handleFlowDayShift(-1)}
-                    disabled={isTemporalLoading}
-                    style={{ padding: '0.25rem 0.5rem' }}
-                    title="往前12日"
-                  >
-                    ←
-                  </button>
-                  <div className="tab-row" style={{ justifyContent: 'center', flexWrap: 'wrap', flex: 1 }}>
-                    {flowDayOptions.map((item, idx) => {
-                      const selected = item.date.toDateString() === targetDate.toDateString();
-                      const emphasis = idx === 5;
-                      return (
-                        <button
-                          key={`flow-day-${idx}-${item.date.toISOString()}`}
-                          className={`tab-button ${selected ? 'is-active' : ''}`}
-                          onClick={() => handleFlowDaySelect(item.date)}
-                          disabled={isTemporalLoading}
-                          style={{
-                            ...(emphasis ? { borderWidth: '2px' } : {}),
-                            opacity: item.isCurrentMonth ? 1 : 0.5,
-                          }}
-                          title={`${item.month}月${item.day}日${item.isCurrentMonth ? '' : '（跨月）'}`}
-                        >
-                          {item.month}/{item.day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => handleFlowDayShift(1)}
-                    disabled={isTemporalLoading}
-                    style={{ padding: '0.25rem 0.5rem' }}
-                    title="往後12日"
-                  >
-                    →
-                  </button>
+                    style={{
+                      padding: '0.5rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface)',
+                      color: 'var(--text)',
+                      fontSize: '0.875rem',
+                    }}
+                  />
+                  {currentTemporalData && (
+                    <span className="body-sm" style={{ color: 'var(--cta)' }}>
+                      農曆 {currentTemporalData.lunar_month}月 {currentTemporalData.lunar_day}日
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -878,7 +902,7 @@ const ResultsPage = ({
         <section className="section-stack">
           {focusedPalace ? (
             <PalaceDetailView
-              palaces={data.palaces}
+              palaces={dynamicPalaces}
               focus={focusedPalace}
               temporalLayers={temporalLayers}
               onBack={() => setFocusedPalace(null)}

@@ -44,10 +44,15 @@ message CalculateResponse {
   repeated PatternData patterns = 10;
   InterpretationData interpretation = 11;
   repeated DaYunData da_yun = 12;
-  TemporalPalaceData liu_nian = 13;
-  TemporalPalaceData liu_yue = 14;
-  TemporalPalaceData liu_ri = 15;
+  repeated TemporalPalaceData liu_nian = 13;  // 流年陣列 (1-80歲)
+  repeated TemporalPalaceData liu_yue = 14;    // 流月陣列 (1-12月)
+  repeated TemporalPalaceData liu_ri = 15;     // 流日陣列 (1-31日)
   DaYunData current_da_yun = 16;
+  // 流運四化（按宮位分組，用於動態顯示）
+  map<string, PalaceTransformGroup> da_yun_palace_transforms = 17;
+  map<string, PalaceTransformGroup> liu_nian_palace_transforms = 18;
+  map<string, PalaceTransformGroup> liu_yue_palace_transforms = 19;
+  map<string, PalaceTransformGroup> liu_ri_palace_transforms = 20;
 }
 
 message PalaceData {
@@ -89,6 +94,11 @@ message TemporalPalaceData {
   string time_branch = 5;
 }
 
+// 宮位四化組（用於 map 的 wrapper）
+message PalaceTransformGroup {
+  repeated TransformData transforms = 1;
+}
+
 message DaYunData {
   int32 index = 1;
   int32 start_age = 2;
@@ -96,6 +106,7 @@ message DaYunData {
   string stem = 4;
   string branch = 5;
   string palace = 6;
+  repeated TransformData transforms = 7;  // 大限四化
 }
 
 message PatternData {

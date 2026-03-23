@@ -330,7 +330,7 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := mapChartToResponse(chart, req.Gender)
+	response := mapChartToResponse(chart, req.Gender, req.Year)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -348,14 +348,24 @@ type TemporalCalculateRequest struct {
 	TargetYear  int    `json:"target_year,omitempty"`
 	TargetMonth int    `json:"target_month,omitempty"`
 	TargetDay   int    `json:"target_day,omitempty"`
+	LunarMonth  int    `json:"lunar_month,omitempty"`
 }
 
 // TemporalCalculateResponse 動態運限計算響應
 type TemporalCalculateResponse struct {
-	DaYun   v1.DaYunData          `json:"da_yun"`
-	LiuNian v1.TemporalPalaceData `json:"liu_nian"`
-	LiuYue  v1.TemporalPalaceData `json:"liu_yue,omitempty"`
-	LiuRi   v1.TemporalPalaceData `json:"liu_ri,omitempty"`
+	DaYun      v1.DaYunData          `json:"da_yun"`
+	LiuNian    v1.TemporalPalaceData `json:"liu_nian"`
+	LiuYue     v1.TemporalPalaceData `json:"liu_yue,omitempty"`
+	LiuRi      v1.TemporalPalaceData `json:"liu_ri,omitempty"`
+	LunarYear  int                   `json:"lunar_year,omitempty"`
+	LunarMonth int                   `json:"lunar_month,omitempty"`
+	LunarDay   int                   `json:"lunar_day,omitempty"`
+	LunarDays  []int                 `json:"lunar_days,omitempty"`
+	// 各宮位的流運四化數據 - 用於三方四正顯示
+	DaYunPalaceTransforms   map[string][]v1.TransformData `json:"da_yun_palace_transforms,omitempty"`
+	LiuNianPalaceTransforms map[string][]v1.TransformData `json:"liu_nian_palace_transforms,omitempty"`
+	LiuYuePalaceTransforms  map[string][]v1.TransformData `json:"liu_yue_palace_transforms,omitempty"`
+	LiuRiPalaceTransforms   map[string][]v1.TransformData `json:"liu_ri_palace_transforms,omitempty"`
 }
 
 func temporalCalculateHandler(w http.ResponseWriter, r *http.Request) {
@@ -472,28 +482,68 @@ func temporalCalculateHandler(w http.ResponseWriter, r *http.Request) {
 	targetPillar := zodiac.GetAstrologicalPillar(celestial.NewPrecisionTime(targetTime))
 	lnBranch := basis.Branch(targetPillar.Year.BranchIndex)
 	lnStem := basis.Stem(targetPillar.Year.StemIndex)
+
+	// 優先使用前端傳來的農曆月份，否則從 targetDate 計算
+	var lunarMonth int
+	var lunarDay int
 	lunarEngine := &zodiac.LunarEngine{}
-	targetLunarDate := lunarEngine.GetLunarDate(celestial.TimeToJD(targetTime))
-	targetLunarMonth := targetLunarDate.Month
-	if targetLunarMonth < 0 {
-		targetLunarMonth = -targetLunarMonth
+	if req.LunarMonth > 0 {
+		lunarMonth = req.LunarMonth
+		// 如果有傳 LunarDay 就用，否則用 targetDay
+		if req.TargetDay > 0 {
+			lunarDay = req.TargetDay
+		} else {
+			// 嘗試從 targetDate 計算農曆日
+			lunarDay = targetDay
+		}
+	} else {
+		// 從 targetDate 計算正確的農曆年月
+		targetLunarDate := lunarEngine.GetLunarDate(celestial.TimeToJD(targetTime))
+		lunarMonth = targetLunarDate.Month
+		if lunarMonth < 0 {
+			lunarMonth = -lunarMonth
+		}
+		lunarDay = targetLunarDate.Day
 	}
-	targetLunarDay := targetLunarDate.Day
+
+	// 計算該月的農曆天數
+	lunarDaysInMonth := 30 // 預設
+	if targetYear > 0 && lunarMonth > 0 && lunarMonth <= 12 {
+		// 嘗試獲取該月的天數：使用陽曆日期轉換
+		// 假設該月15日，轉換為儒略日
+		testDate := time.Date(targetYear, time.Month(targetMonth), 15, 12, 0, 0, 0, loc)
+		jd := celestial.TimeToJD(testDate)
+		testLunarDate := lunarEngine.GetLunarDate(jd)
+		// 嘗試獲取該月最後一天
+		for d := 28; d <= 30; d++ {
+			testDate2 := time.Date(targetYear, time.Month(targetMonth), d, 12, 0, 0, 0, loc)
+			jd2 := celestial.TimeToJD(testDate2)
+			lunarDate2 := lunarEngine.GetLunarDate(jd2)
+			if lunarDate2.Month != testLunarDate.Month && lunarDate2.Month != -testLunarDate.Month {
+				lunarDaysInMonth = d - 1
+				break
+			}
+			lunarDaysInMonth = d
+		}
+	}
 
 	// 計算流月
 	// 使用 Dou Jun 方法：從流年地支開始，逆數到出生月，再順數到出生時
 	birthMonth := req.BirthMonth
 	if req.IsLunar {
-		// 如果是農曆輸入，需要轉換為陰曆月份
 		birthMonth = req.BirthMonth
 	}
 	hourBranch := basis.HourBranch(hourBranchIdx)
 	month1Idx := (int(lnBranch) - (birthMonth - 1) + int(hourBranch) + 12) % 12
-	lYueIdx := (month1Idx + (targetLunarMonth - 1)) % 12
+	lYueIdx := (month1Idx + (lunarMonth - 1)) % 12
 	lyBranch := basis.Branch(lYueIdx)
 
-	// 計算流日
-	lRiIdx := (int(lyBranch) + (targetLunarDay - 1)) % 12
+	// 計算流日（使用計算出的農曆日，但不能超過該月實際天數）
+	actualDay := lunarDay
+	if actualDay > lunarDaysInMonth {
+		actualDay = lunarDaysInMonth
+	}
+	lRiIdx := (int(lyBranch) + (actualDay - 1)) % 12
 	lrBranch := basis.Branch(lRiIdx)
 
 	response := TemporalCalculateResponse{
@@ -513,19 +563,33 @@ func temporalCalculateHandler(w http.ResponseWriter, r *http.Request) {
 			TimeBranch: lnBranch.String(),
 		},
 		LiuYue: v1.TemporalPalaceData{
-			Label:      fmt.Sprintf("流月（國%d月 / 農%d月）", targetMonth, targetLunarMonth),
+			Label:      fmt.Sprintf("流月（農曆%d月）", lunarMonth),
 			Branch:     lyBranch.String(),
 			Palace:     chart.Palaces[lyBranch].String(),
 			Stem:       basis.Stem(targetPillar.Month.StemIndex).String(),
 			TimeBranch: basis.Branch(targetPillar.Month.BranchIndex).String(),
 		},
 		LiuRi: v1.TemporalPalaceData{
-			Label:      fmt.Sprintf("流日（國%d日 / 農%d日）", targetDay, targetLunarDay),
+			Label:      fmt.Sprintf("流日（農曆%d日）", lunarDay),
 			Branch:     lrBranch.String(),
 			Palace:     chart.Palaces[lrBranch].String(),
 			Stem:       basis.Stem(targetPillar.Day.StemIndex).String(),
 			TimeBranch: basis.Branch(targetPillar.Day.BranchIndex).String(),
 		},
+		LunarYear:  targetYear,
+		LunarMonth: lunarMonth,
+		LunarDay:   lunarDay,
+		LunarDays: func() []int {
+			days := make([]int, lunarDaysInMonth)
+			for i := range days {
+				days[i] = i + 1
+			}
+			return days
+		}(),
+		DaYunPalaceTransforms:   calculateTemporalTransforms(chart, chart.PalaceGans[selectedDaYun.Branch]),
+		LiuNianPalaceTransforms: calculateTemporalTransforms(chart, lnStem),
+		LiuYuePalaceTransforms:  calculateTemporalTransforms(chart, basis.Stem(targetPillar.Month.StemIndex)),
+		LiuRiPalaceTransforms:   calculateTemporalTransforms(chart, basis.Stem(targetPillar.Day.StemIndex)),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -612,7 +676,7 @@ func tagsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func mapChartToResponse(chart *engine.ZiweiChart, gender string) v1.ZiweiResponse {
+func mapChartToResponse(chart *engine.ZiweiChart, gender string, birthYear int) v1.ZiweiResponse {
 	palaces := make(map[string]v1.PalaceData)
 	for i := 0; i < 12; i++ {
 		b := basis.Branch(i)
@@ -738,6 +802,12 @@ func mapChartToResponse(chart *engine.ZiweiChart, gender string) v1.ZiweiRespons
 
 	daYun := make([]v1.DaYunData, 0, len(chart.DaYun))
 	var currentDaYun *v1.DaYunData
+
+	// 計算當前年齡（虛歲）對應的大限
+	currentYear := time.Now().Year()
+	virtualAge := currentYear - birthYear + 1
+	currentDaYunIndex := (virtualAge - 1) / 10 // 0-9歲為第1大限，10-19歲為第2大限，以此類推
+
 	for _, dy := range chart.DaYun {
 		item := v1.DaYunData{
 			Index:    dy.Index,
@@ -748,7 +818,8 @@ func mapChartToResponse(chart *engine.ZiweiChart, gender string) v1.ZiweiRespons
 			Palace:   chart.Palaces[dy.Branch].String(),
 		}
 		daYun = append(daYun, item)
-		if dy.Index == 1 && currentDaYun == nil {
+		// 根據當前年齡找到對應的當前大限
+		if dy.Index == currentDaYunIndex+1 && currentDaYun == nil {
 			copyItem := item
 			currentDaYun = &copyItem
 		}
@@ -883,4 +954,52 @@ func findStarTargetPalace(chart *engine.ZiweiChart, starName string) string {
 		}
 	}
 	return ""
+}
+
+func calculateTemporalTransforms(chart *engine.ZiweiChart, stem basis.Stem) map[string][]v1.TransformData {
+	result := make(map[string][]v1.TransformData)
+
+	table, ok := basis.TransformationTable[stem]
+	if !ok {
+		return result
+	}
+
+	transTypes := []string{"祿", "權", "科", "忌"}
+
+	for i, starName := range table {
+		transType := transTypes[i]
+
+		for branchIdx := 0; branchIdx < 12; branchIdx++ {
+			b := basis.Branch(branchIdx)
+			palaceName := chart.Palaces[b].String()
+
+			allStars := []string{}
+			for _, s := range chart.Stars[b] {
+				allStars = append(allStars, s.String())
+			}
+			for _, s := range chart.AssistantStars[b] {
+				if strer, ok := s.(interface{ String() string }); ok {
+					allStars = append(allStars, strer.String())
+				}
+			}
+			for _, s := range chart.SecondaryStars[b] {
+				if strer, ok := s.(interface{ String() string }); ok {
+					allStars = append(allStars, strer.String())
+				}
+			}
+
+			for _, s := range allStars {
+				if s == starName {
+					result[palaceName] = append(result[palaceName], v1.TransformData{
+						Star:           starName,
+						Transformation: "化" + transType,
+						Display:        starName + "化" + transType,
+					})
+					break
+				}
+			}
+		}
+	}
+
+	return result
 }

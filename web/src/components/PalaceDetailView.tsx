@@ -185,9 +185,24 @@ function getRoleLabel(palaceName: string, focusPalaceName: string, sanFangPalace
   return '';
 }
 
-function getTransformSourceLabel(source?: string): string {
-  if (source === 'natal') return '生年';
-  return '飛星';
+function getTransformSourceLabel(source?: string, focusLabel?: string): string {
+  switch (source) {
+    case 'natal': return '生年';
+    case 'dayun': return '大限';
+    case 'liunian':
+    case 'liunian-fly': return '流年';
+    case 'liuyue':
+    case 'liuyue-fly': return '流月';
+    case 'liuri':
+    case 'liuri-fly': return '流日';
+    case 'natal-fly':
+      // 本命飛星使用宮位名稱
+      if (focusLabel?.includes('命宮')) return '命宮';
+      if (focusLabel?.includes('身宮')) return '身宮';
+      if (focusLabel?.includes('來因宮')) return '來因宮';
+      return '本命';
+    default: return '飛星';
+  }
 }
 
 const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, temporalLayers = [], onBack }) => {
@@ -201,10 +216,151 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
     return calculateSanFang(focusPalaceName);
   }, [focusPalaceName]);
 
+  // 根據選擇的層級計算飛星四化
   const flyHuaResults = useMemo(() => {
-    if (!focusGan) return [];
-    return calculateFlyHua(focusGan, palaces);
-  }, [focusGan, palaces]);
+    const results: Array<{type: string; star: string; targetPalace: string; targetBranch: string; source: string; sourceLabel: string}> = [];
+    
+    // 從 temporalLayers 中提取各層級的 stem
+    const dayunLayer = temporalLayers.find(l => l.label === '大限');
+    const liunianLayer = temporalLayers.find(l => l.label === '流年');
+    const liuyueLayer = temporalLayers.find(l => l.label === '流月');
+    const liuriLayer = temporalLayers.find(l => l.label === '流日');
+    
+    // 判斷當前選擇的層級
+    const isNatalLevel = focus.label.includes('來因宮') || focus.label.includes('命宮') || focus.label.includes('身宮');
+    const isDaYunLevel = focus.label.includes('大限');
+    const isLiuNianLevel = focus.label.includes('流年');
+    const isLiuYueLevel = focus.label.includes('流月');
+    const isLiuRiLevel = focus.label.includes('流日');
+    
+    // 本命層級：顯示該宮位的飛星四化
+    if (isNatalLevel && focusGan) {
+      const hua = calculateFlyHua(focusGan, palaces);
+      hua.forEach(h => {
+        results.push({
+          ...h,
+          source: 'natal-fly',
+          sourceLabel: '本命'
+        });
+      });
+    }
+    
+    // 大限層級：顯示大限飛星四化
+    if (isDaYunLevel && dayunLayer?.stem) {
+      const hua = calculateFlyHua(dayunLayer.stem, palaces);
+      hua.forEach(h => {
+        results.push({
+          ...h,
+          source: 'dayun',
+          sourceLabel: '大限'
+        });
+      });
+    }
+    
+    // 流年層級：顯示大限+流年飛星四化
+    if (isLiuNianLevel) {
+      if (dayunLayer?.stem) {
+        const hua = calculateFlyHua(dayunLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'dayun',
+            sourceLabel: '大限'
+          });
+        });
+      }
+      if (liunianLayer?.stem) {
+        const hua = calculateFlyHua(liunianLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'liunian-fly',
+            sourceLabel: '流年'
+          });
+        });
+      }
+    }
+    
+    // 流月層級：顯示大限+流年+流月飛星四化
+    if (isLiuYueLevel) {
+      if (dayunLayer?.stem) {
+        const hua = calculateFlyHua(dayunLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'dayun',
+            sourceLabel: '大限'
+          });
+        });
+      }
+      if (liunianLayer?.stem) {
+        const hua = calculateFlyHua(liunianLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'liunian-fly',
+            sourceLabel: '流年'
+          });
+        });
+      }
+      if (liuyueLayer?.stem) {
+        const hua = calculateFlyHua(liuyueLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'liuyue-fly',
+            sourceLabel: '流月'
+          });
+        });
+      }
+    }
+    
+    // 流日層級：顯示全部飛星四化
+    if (isLiuRiLevel) {
+      if (dayunLayer?.stem) {
+        const hua = calculateFlyHua(dayunLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'dayun',
+            sourceLabel: '大限'
+          });
+        });
+      }
+      if (liunianLayer?.stem) {
+        const hua = calculateFlyHua(liunianLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'liunian-fly',
+            sourceLabel: '流年'
+          });
+        });
+      }
+      if (liuyueLayer?.stem) {
+        const hua = calculateFlyHua(liuyueLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'liuyue-fly',
+            sourceLabel: '流月'
+          });
+        });
+      }
+      if (liuriLayer?.stem) {
+        const hua = calculateFlyHua(liuriLayer.stem, palaces);
+        hua.forEach(h => {
+          results.push({
+            ...h,
+            source: 'liuri-fly',
+            sourceLabel: '流日'
+          });
+        });
+      }
+    }
+    
+    return results;
+  }, [focusGan, palaces, focus.label, temporalLayers]);
 
   const sanFangSet = useMemo(() => new Set(sanFangPalaces), [sanFangPalaces]);
   const inSanFang = flyHuaResults.filter(r => sanFangSet.has(normalizePalaceName(r.targetPalace)));
@@ -219,6 +375,56 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
           palaceName: normalizePalaceName(palaceName),
           branch: entry.branch,
           transform: t,
+        });
+      });
+    });
+    return results;
+  }, [palaces, sanFangSet]);
+
+  // 收集非三方四正的流運四化（從後端返回的 dayun_transforms 等字段）
+  const outsideTemporalTransforms = useMemo(() => {
+    const results: Array<{ palaceName: string; branch: string; transform: TransformInfo; source: string }> = [];
+    
+    Object.entries(palaces).forEach(([palaceName, entry]) => {
+      if (!entry || sanFangSet.has(normalizePalaceName(palaceName))) return;
+      
+      // 大限四化
+      (entry.dayun_transforms || []).forEach((t) => {
+        results.push({
+          palaceName: normalizePalaceName(palaceName),
+          branch: entry.branch,
+          transform: t,
+          source: 'dayun'
+        });
+      });
+      
+      // 流年四化
+      (entry.liunian_transforms || []).forEach((t) => {
+        results.push({
+          palaceName: normalizePalaceName(palaceName),
+          branch: entry.branch,
+          transform: t,
+          source: 'liunian'
+        });
+      });
+      
+      // 流月四化
+      (entry.liuyue_transforms || []).forEach((t) => {
+        results.push({
+          palaceName: normalizePalaceName(palaceName),
+          branch: entry.branch,
+          transform: t,
+          source: 'liuyue'
+        });
+      });
+      
+      // 流日四化
+      (entry.liuri_transforms || []).forEach((t) => {
+        results.push({
+          palaceName: normalizePalaceName(palaceName),
+          branch: entry.branch,
+          transform: t,
+          source: 'liuri'
         });
       });
     });
@@ -319,6 +525,26 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
       });
     }
 
+    if (focus.label.includes('命宮') || focus.label.includes('身宮') || focus.label.includes('來因宮')) {
+      const palaceEntry = resolvePalaceEntry(palaces, focus.palaceName)?.entry;
+      if (palaceEntry?.palace_gan) {
+        const flyResults = calculateFlyHua(palaceEntry.palace_gan, palaces);
+        flyResults.forEach(fly => {
+          const alreadyExists = transforms.some(t => 
+            t.star === fly.star && t.transformation === '化' + fly.type
+          );
+          if (!alreadyExists) {
+            transforms.push({
+              star: fly.star,
+              transformation: '化' + fly.type,
+              display: fly.star + '化' + fly.type,
+              source: 'natal-fly'
+            });
+          }
+        });
+      }
+    }
+
     if (entry.dayun_transforms) {
       entry.dayun_transforms.forEach(t => {
         transforms.push({
@@ -371,13 +597,14 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
     return palaceTransforms.filter(t => t.star === starName);
   };
 
-  const getFlyInTransforms = (palaceName: string): Array<{type: string; star: string; source: string}> => {
+  const getFlyInTransforms = (palaceName: string): Array<{type: string; star: string; source: string; sourceLabel: string}> => {
     const normalizedPalace = normalizePalaceName(palaceName);
     const flyIn = inSanFang.filter(f => normalizePalaceName(f.targetPalace) === normalizedPalace);
     return flyIn.map(f => ({
       type: f.type,
       star: f.star,
-      source: 'flyin'
+      source: f.source,
+      sourceLabel: f.sourceLabel
     }));
   };
 
@@ -537,7 +764,7 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
                                        '#2563eb'
                               }}
                             >
-                              {getTransformSourceLabel(t.source)}化{t.transformation}
+                              {getTransformSourceLabel(t.source, focus.label)}{t.transformation.replace('化', '')}
                             </span>
                           ))}
                         </div>
@@ -551,36 +778,48 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
                             padding: '0.1rem 0.35rem',
                             borderRadius: '4px',
                             fontWeight: 500,
-                            background: 'rgba(37, 99, 235, 0.1)',
-                            color: '#2563eb'
+                            background: f.source === 'dayun' ? 'rgba(139, 92, 246, 0.1)' :
+                                       f.source === 'liunian-fly' ? 'rgba(59, 130, 246, 0.1)' :
+                                       f.source === 'liuyue-fly' ? 'rgba(16, 185, 129, 0.1)' :
+                                       f.source === 'liuri-fly' ? 'rgba(245, 158, 11, 0.1)' :
+                                       'rgba(37, 99, 235, 0.1)',
+                            color: f.source === 'dayun' ? '#8b5cf6' :
+                                   f.source === 'liunian-fly' ? '#2563eb' :
+                                   f.source === 'liuyue-fly' ? '#10b981' :
+                                   f.source === 'liuri-fly' ? '#f59e0b' :
+                                   '#2563eb'
                           }}
                         >
-                          飛星化{f.type}
+                          {f.sourceLabel}{f.type}
                         </span>
                       ))}
                     </div>
                   );
                 })}
 
-                {flyInTransforms.filter(f => !stars.some(s => s.name === f.star)).map((f, i) => (
-                  <div
-                    key={`fly-extra-${i}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.35rem 0',
-                      color: '#2563eb',
-                      fontSize: '0.875rem'
-                    }}
-                  >
-                    <span>飛入：</span>
-                    <span style={{ fontWeight: 500 }}>飛星化{f.type}</span>
-                    <span style={{ color: 'var(--text-soft)', fontSize: '0.75rem' }}>
-                      （{focusGan}干飛化）
-                    </span>
-                  </div>
-                ))}
+                {flyInTransforms.filter(f => !stars.some(s => s.name === f.star)).map((f, i) => {
+                  const flyColor = f.source === 'dayun' ? '#8b5cf6' :
+                                    f.source === 'liunian-fly' ? '#2563eb' :
+                                    f.source === 'liuyue-fly' ? '#10b981' :
+                                    f.source === 'liuri-fly' ? '#f59e0b' :
+                                    '#2563eb';
+                  return (
+                    <div
+                      key={`fly-extra-${i}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.35rem 0',
+                        color: flyColor,
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      <span>飛入：</span>
+                      <span style={{ fontWeight: 500 }}>{f.sourceLabel}{f.type}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -630,7 +869,7 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
                         {brightness && (
                           <span style={{ color: getBrightnessColor(brightness), fontWeight: 500 }}>{brightness}</span>
                         )}
-                        <span style={{ color: '#dc2626', fontWeight: 500 }}>{item.transform.transformation}</span>
+                        <span style={{ color: '#dc2626', fontWeight: 500 }}>生年{item.transform.transformation.replace('化', '')}</span>
                       </div>
                     </div>
                   );
@@ -639,18 +878,67 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
             </div>
           )}
 
-          {/* 飛出三方四正的四化 */}
-          {outSanFang.length > 0 && (
+          {(outsideTemporalTransforms.length > 0 || outSanFang.length > 0) && (
             <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '0.5rem' }}>
-              <div className="heading-sm" style={{ marginBottom: '0.5rem' }}>非三方四正的飛星四化</div>
+              <div className="heading-sm" style={{ marginBottom: '0.5rem' }}>
+                非三方四正的
+                {focus.label.includes('大限') ? '大限四化' : 
+                 focus.label.includes('流年') ? '流年四化' : 
+                 focus.label.includes('流月') ? '流月四化' : 
+                 focus.label.includes('流日') ? '流日四化' : 
+                 focus.label.includes('命宮') ? '命宮四化' : 
+                 focus.label.includes('身宮') ? '身宮四化' : 
+                 focus.label.includes('來因宮') ? '來因宮四化' : '四化'}
+              </div>
               <div style={{ display: 'grid', gap: '0.5rem', alignContent: 'start', flex: 1 }}>
+                {outsideTemporalTransforms.map((item, index) => {
+                  const stars = getPalaceStars(item.palaceName);
+                  const starDetail = stars.find(s => s.name === item.transform.star);
+                  const brightness = starDetail?.brightness;
+                  const shiftedPalace = resolveShiftedPalace(item.palaceName, focusPalaceName);
+                  const sourceLabel = item.source === 'dayun' ? '大限' : 
+                                     item.source === 'liunian' ? '流年' : 
+                                     item.source === 'liuyue' ? '流月' : 
+                                     item.source === 'liuri' ? '流日' : '';
+                  const sourceColor = item.source === 'dayun' ? '#8b5cf6' : 
+                                     item.source === 'liunian' ? '#2563eb' : 
+                                     item.source === 'liuyue' ? '#10b981' : 
+                                     item.source === 'liuri' ? '#f59e0b' : '#2563eb';
+                  return (
+                    <div key={`temporal-${item.palaceName}-${index}`} className="metric-card">
+                      <div className="body-md">
+                        {item.palaceName}（{item.branch}）→ {shiftedPalace || '—'}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{item.transform.star}</span>
+                        {brightness && (
+                          <span style={{ color: getBrightnessColor(brightness), fontWeight: 500 }}>{brightness}</span>
+                        )}
+                        <span style={{ color: sourceColor, fontWeight: 500 }}>
+                          {sourceLabel}{item.transform.transformation.replace('化', '')}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                
                 {outSanFang.map((f, i) => {
                   const stars = getPalaceStars(f.targetPalace);
                   const starDetail = stars.find(s => s.name === f.star);
                   const brightness = starDetail?.brightness;
                   const shiftedPalace = resolveShiftedPalace(f.targetPalace, focusPalaceName);
+                  const sourceLabel = f.source === 'dayun' ? '大限' : 
+                                     f.source === 'liunian-fly' ? '流年' : 
+                                     f.source === 'liuyue-fly' ? '流月' : 
+                                     f.source === 'liuri-fly' ? '流日' : 
+                                     f.source === 'natal-fly' ? (focus.label.includes('命宮') ? '命宮' : focus.label.includes('身宮') ? '身宮' : focus.label.includes('來因宮') ? '來因宮' : '本命') : '';
+                  const flyColor = f.source === 'dayun' ? '#8b5cf6' : 
+                                    f.source === 'liunian-fly' ? '#2563eb' : 
+                                    f.source === 'liuyue-fly' ? '#10b981' : 
+                                    f.source === 'liuri-fly' ? '#f59e0b' : 
+                                    f.source === 'natal-fly' ? '#06b6d4' : '#2563eb';
                   return (
-                    <div key={`${f.star}-${f.type}-${i}`} className="metric-card">
+                    <div key={`fly-${f.star}-${f.type}-${i}`} className="metric-card">
                       <div className="body-md">
                         {f.targetPalace}（{f.targetBranch}）→ {shiftedPalace || '—'}
                       </div>
@@ -659,7 +947,9 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
                         {brightness && (
                           <span style={{ color: getBrightnessColor(brightness), fontWeight: 500 }}>{brightness}</span>
                         )}
-                        <span style={{ color: '#2563eb', fontWeight: 500 }}>{f.type}</span>
+                        <span style={{ color: flyColor, fontWeight: 500 }}>
+                          {sourceLabel}{f.type}
+                        </span>
                       </div>
                     </div>
                   );
@@ -678,12 +968,26 @@ const PalaceDetailView: React.FC<PalaceDetailViewProps> = ({ palaces, focus, tem
         <span><span style={{ color: '#6b7280' }}>●</span> 平</span>
         <span><span style={{ color: '#dc2626' }}>●</span> 陷</span>
         <span style={{ marginLeft: '1rem' }}>|</span>
-        <span><span style={{ color: '#dc2626' }}>■</span> 生年四化</span>
-        <span><span style={{ color: '#8b5cf6' }}>■</span> 大限四化</span>
-        <span><span style={{ color: '#2563eb' }}>■</span> 流年四化</span>
-        <span><span style={{ color: '#10b981' }}>■</span> 流月四化</span>
-        <span><span style={{ color: '#f59e0b' }}>■</span> 流日四化</span>
-        <span><span style={{ color: '#2563eb' }}>→</span> {focusGan}干飛入</span>
+        <span><span style={{ color: '#dc2626' }}>■</span> 生年四化（祿權科忌）</span>
+        {focus.label.includes('大限') || focus.label.includes('流年') || focus.label.includes('流月') || focus.label.includes('流日') ? (
+          <span><span style={{ color: '#8b5cf6' }}>■</span> 大限四化</span>
+        ) : null}
+        {focus.label.includes('流年') || focus.label.includes('流月') || focus.label.includes('流日') ? (
+          <span><span style={{ color: '#2563eb' }}>■</span> 流年四化</span>
+        ) : null}
+        {focus.label.includes('流月') || focus.label.includes('流日') ? (
+          <span><span style={{ color: '#10b981' }}>■</span> 流月四化</span>
+        ) : null}
+        {focus.label.includes('流日') ? (
+          <span><span style={{ color: '#f59e0b' }}>■</span> 流日四化</span>
+        ) : null}
+        {focus.label.includes('來因宮') || focus.label.includes('命宮') || focus.label.includes('身宮') ? (
+          <span><span style={{ color: '#06b6d4' }}>■</span> 
+            {focus.label.includes('命宮') ? '命宮' : 
+             focus.label.includes('身宮') ? '身宮' : 
+             focus.label.includes('來因宮') ? '來因宮' : '本命'}四化（{focusGan}干）
+          </span>
+        ) : null}
       </div>
     </div>
   );

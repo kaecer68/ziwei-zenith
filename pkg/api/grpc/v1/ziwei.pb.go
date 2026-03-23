@@ -135,12 +135,17 @@ type CalculateResponse struct {
 	Patterns       []*PatternData         `protobuf:"bytes,10,rep,name=patterns,proto3" json:"patterns,omitempty"`
 	Interpretation *InterpretationData    `protobuf:"bytes,11,opt,name=interpretation,proto3" json:"interpretation,omitempty"`
 	DaYun          []*DaYunData           `protobuf:"bytes,12,rep,name=da_yun,json=daYun,proto3" json:"da_yun,omitempty"`
-	LiuNian        *TemporalPalaceData    `protobuf:"bytes,13,opt,name=liu_nian,json=liuNian,proto3" json:"liu_nian,omitempty"`
-	LiuYue         *TemporalPalaceData    `protobuf:"bytes,14,opt,name=liu_yue,json=liuYue,proto3" json:"liu_yue,omitempty"`
-	LiuRi          *TemporalPalaceData    `protobuf:"bytes,15,opt,name=liu_ri,json=liuRi,proto3" json:"liu_ri,omitempty"`
+	LiuNian        []*TemporalPalaceData  `protobuf:"bytes,13,rep,name=liu_nian,json=liuNian,proto3" json:"liu_nian,omitempty"` // 流年陣列 (1-80歲)
+	LiuYue         []*TemporalPalaceData  `protobuf:"bytes,14,rep,name=liu_yue,json=liuYue,proto3" json:"liu_yue,omitempty"`    // 流月陣列 (1-12月)
+	LiuRi          []*TemporalPalaceData  `protobuf:"bytes,15,rep,name=liu_ri,json=liuRi,proto3" json:"liu_ri,omitempty"`       // 流日陣列 (1-31日)
 	CurrentDaYun   *DaYunData             `protobuf:"bytes,16,opt,name=current_da_yun,json=currentDaYun,proto3" json:"current_da_yun,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// 流運四化（按宮位分組，用於動態顯示）
+	DaYunPalaceTransforms   map[string]*PalaceTransformGroup `protobuf:"bytes,17,rep,name=da_yun_palace_transforms,json=daYunPalaceTransforms,proto3" json:"da_yun_palace_transforms,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LiuNianPalaceTransforms map[string]*PalaceTransformGroup `protobuf:"bytes,18,rep,name=liu_nian_palace_transforms,json=liuNianPalaceTransforms,proto3" json:"liu_nian_palace_transforms,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LiuYuePalaceTransforms  map[string]*PalaceTransformGroup `protobuf:"bytes,19,rep,name=liu_yue_palace_transforms,json=liuYuePalaceTransforms,proto3" json:"liu_yue_palace_transforms,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	LiuRiPalaceTransforms   map[string]*PalaceTransformGroup `protobuf:"bytes,20,rep,name=liu_ri_palace_transforms,json=liuRiPalaceTransforms,proto3" json:"liu_ri_palace_transforms,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *CalculateResponse) Reset() {
@@ -257,21 +262,21 @@ func (x *CalculateResponse) GetDaYun() []*DaYunData {
 	return nil
 }
 
-func (x *CalculateResponse) GetLiuNian() *TemporalPalaceData {
+func (x *CalculateResponse) GetLiuNian() []*TemporalPalaceData {
 	if x != nil {
 		return x.LiuNian
 	}
 	return nil
 }
 
-func (x *CalculateResponse) GetLiuYue() *TemporalPalaceData {
+func (x *CalculateResponse) GetLiuYue() []*TemporalPalaceData {
 	if x != nil {
 		return x.LiuYue
 	}
 	return nil
 }
 
-func (x *CalculateResponse) GetLiuRi() *TemporalPalaceData {
+func (x *CalculateResponse) GetLiuRi() []*TemporalPalaceData {
 	if x != nil {
 		return x.LiuRi
 	}
@@ -281,6 +286,34 @@ func (x *CalculateResponse) GetLiuRi() *TemporalPalaceData {
 func (x *CalculateResponse) GetCurrentDaYun() *DaYunData {
 	if x != nil {
 		return x.CurrentDaYun
+	}
+	return nil
+}
+
+func (x *CalculateResponse) GetDaYunPalaceTransforms() map[string]*PalaceTransformGroup {
+	if x != nil {
+		return x.DaYunPalaceTransforms
+	}
+	return nil
+}
+
+func (x *CalculateResponse) GetLiuNianPalaceTransforms() map[string]*PalaceTransformGroup {
+	if x != nil {
+		return x.LiuNianPalaceTransforms
+	}
+	return nil
+}
+
+func (x *CalculateResponse) GetLiuYuePalaceTransforms() map[string]*PalaceTransformGroup {
+	if x != nil {
+		return x.LiuYuePalaceTransforms
+	}
+	return nil
+}
+
+func (x *CalculateResponse) GetLiuRiPalaceTransforms() map[string]*PalaceTransformGroup {
+	if x != nil {
+		return x.LiuRiPalaceTransforms
 	}
 	return nil
 }
@@ -645,6 +678,51 @@ func (x *TemporalPalaceData) GetTimeBranch() string {
 	return ""
 }
 
+// 宮位四化組（用於 map 的 wrapper）
+type PalaceTransformGroup struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Transforms    []*TransformData       `protobuf:"bytes,1,rep,name=transforms,proto3" json:"transforms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PalaceTransformGroup) Reset() {
+	*x = PalaceTransformGroup{}
+	mi := &file_ziwei_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PalaceTransformGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PalaceTransformGroup) ProtoMessage() {}
+
+func (x *PalaceTransformGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_ziwei_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PalaceTransformGroup.ProtoReflect.Descriptor instead.
+func (*PalaceTransformGroup) Descriptor() ([]byte, []int) {
+	return file_ziwei_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *PalaceTransformGroup) GetTransforms() []*TransformData {
+	if x != nil {
+		return x.Transforms
+	}
+	return nil
+}
+
 type DaYunData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Index         int32                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
@@ -653,13 +731,14 @@ type DaYunData struct {
 	Stem          string                 `protobuf:"bytes,4,opt,name=stem,proto3" json:"stem,omitempty"`
 	Branch        string                 `protobuf:"bytes,5,opt,name=branch,proto3" json:"branch,omitempty"`
 	Palace        string                 `protobuf:"bytes,6,opt,name=palace,proto3" json:"palace,omitempty"`
+	Transforms    []*TransformData       `protobuf:"bytes,7,rep,name=transforms,proto3" json:"transforms,omitempty"` // 大限四化
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DaYunData) Reset() {
 	*x = DaYunData{}
-	mi := &file_ziwei_proto_msgTypes[6]
+	mi := &file_ziwei_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -671,7 +750,7 @@ func (x *DaYunData) String() string {
 func (*DaYunData) ProtoMessage() {}
 
 func (x *DaYunData) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[6]
+	mi := &file_ziwei_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -684,7 +763,7 @@ func (x *DaYunData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DaYunData.ProtoReflect.Descriptor instead.
 func (*DaYunData) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{6}
+	return file_ziwei_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DaYunData) GetIndex() int32 {
@@ -729,6 +808,13 @@ func (x *DaYunData) GetPalace() string {
 	return ""
 }
 
+func (x *DaYunData) GetTransforms() []*TransformData {
+	if x != nil {
+		return x.Transforms
+	}
+	return nil
+}
+
 type PatternData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -740,7 +826,7 @@ type PatternData struct {
 
 func (x *PatternData) Reset() {
 	*x = PatternData{}
-	mi := &file_ziwei_proto_msgTypes[7]
+	mi := &file_ziwei_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -752,7 +838,7 @@ func (x *PatternData) String() string {
 func (*PatternData) ProtoMessage() {}
 
 func (x *PatternData) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[7]
+	mi := &file_ziwei_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -765,7 +851,7 @@ func (x *PatternData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PatternData.ProtoReflect.Descriptor instead.
 func (*PatternData) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{7}
+	return file_ziwei_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PatternData) GetName() string {
@@ -806,7 +892,7 @@ type InterpretationData struct {
 
 func (x *InterpretationData) Reset() {
 	*x = InterpretationData{}
-	mi := &file_ziwei_proto_msgTypes[8]
+	mi := &file_ziwei_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -818,7 +904,7 @@ func (x *InterpretationData) String() string {
 func (*InterpretationData) ProtoMessage() {}
 
 func (x *InterpretationData) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[8]
+	mi := &file_ziwei_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -831,7 +917,7 @@ func (x *InterpretationData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InterpretationData.ProtoReflect.Descriptor instead.
 func (*InterpretationData) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{8}
+	return file_ziwei_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *InterpretationData) GetSummary() string {
@@ -912,7 +998,7 @@ type DeepStarAnalysis struct {
 
 func (x *DeepStarAnalysis) Reset() {
 	*x = DeepStarAnalysis{}
-	mi := &file_ziwei_proto_msgTypes[9]
+	mi := &file_ziwei_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -924,7 +1010,7 @@ func (x *DeepStarAnalysis) String() string {
 func (*DeepStarAnalysis) ProtoMessage() {}
 
 func (x *DeepStarAnalysis) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[9]
+	mi := &file_ziwei_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -937,7 +1023,7 @@ func (x *DeepStarAnalysis) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeepStarAnalysis.ProtoReflect.Descriptor instead.
 func (*DeepStarAnalysis) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{9}
+	return file_ziwei_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeepStarAnalysis) GetName() string {
@@ -1000,7 +1086,7 @@ type FlyHuaAnalysis struct {
 
 func (x *FlyHuaAnalysis) Reset() {
 	*x = FlyHuaAnalysis{}
-	mi := &file_ziwei_proto_msgTypes[10]
+	mi := &file_ziwei_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1098,7 @@ func (x *FlyHuaAnalysis) String() string {
 func (*FlyHuaAnalysis) ProtoMessage() {}
 
 func (x *FlyHuaAnalysis) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[10]
+	mi := &file_ziwei_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1111,7 @@ func (x *FlyHuaAnalysis) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlyHuaAnalysis.ProtoReflect.Descriptor instead.
 func (*FlyHuaAnalysis) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{10}
+	return file_ziwei_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *FlyHuaAnalysis) GetFromPalace() string {
@@ -1063,7 +1149,7 @@ type FlyStage struct {
 
 func (x *FlyStage) Reset() {
 	*x = FlyStage{}
-	mi := &file_ziwei_proto_msgTypes[11]
+	mi := &file_ziwei_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1075,7 +1161,7 @@ func (x *FlyStage) String() string {
 func (*FlyStage) ProtoMessage() {}
 
 func (x *FlyStage) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[11]
+	mi := &file_ziwei_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1088,7 +1174,7 @@ func (x *FlyStage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FlyStage.ProtoReflect.Descriptor instead.
 func (*FlyStage) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{11}
+	return file_ziwei_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FlyStage) GetType() string {
@@ -1147,7 +1233,7 @@ type ResonancePoint struct {
 
 func (x *ResonancePoint) Reset() {
 	*x = ResonancePoint{}
-	mi := &file_ziwei_proto_msgTypes[12]
+	mi := &file_ziwei_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1159,7 +1245,7 @@ func (x *ResonancePoint) String() string {
 func (*ResonancePoint) ProtoMessage() {}
 
 func (x *ResonancePoint) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[12]
+	mi := &file_ziwei_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1172,7 +1258,7 @@ func (x *ResonancePoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResonancePoint.ProtoReflect.Descriptor instead.
 func (*ResonancePoint) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{12}
+	return file_ziwei_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ResonancePoint) GetLayer() string {
@@ -1230,7 +1316,7 @@ type KarmicStep struct {
 
 func (x *KarmicStep) Reset() {
 	*x = KarmicStep{}
-	mi := &file_ziwei_proto_msgTypes[13]
+	mi := &file_ziwei_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1242,7 +1328,7 @@ func (x *KarmicStep) String() string {
 func (*KarmicStep) ProtoMessage() {}
 
 func (x *KarmicStep) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[13]
+	mi := &file_ziwei_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1255,7 +1341,7 @@ func (x *KarmicStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KarmicStep.ProtoReflect.Descriptor instead.
 func (*KarmicStep) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{13}
+	return file_ziwei_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *KarmicStep) GetType() string {
@@ -1304,7 +1390,7 @@ type SanFangRole struct {
 
 func (x *SanFangRole) Reset() {
 	*x = SanFangRole{}
-	mi := &file_ziwei_proto_msgTypes[14]
+	mi := &file_ziwei_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1316,7 +1402,7 @@ func (x *SanFangRole) String() string {
 func (*SanFangRole) ProtoMessage() {}
 
 func (x *SanFangRole) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[14]
+	mi := &file_ziwei_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1329,7 +1415,7 @@ func (x *SanFangRole) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SanFangRole.ProtoReflect.Descriptor instead.
 func (*SanFangRole) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{14}
+	return file_ziwei_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SanFangRole) GetRole() string {
@@ -1373,7 +1459,7 @@ type BirthRecord struct {
 
 func (x *BirthRecord) Reset() {
 	*x = BirthRecord{}
-	mi := &file_ziwei_proto_msgTypes[15]
+	mi := &file_ziwei_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1385,7 +1471,7 @@ func (x *BirthRecord) String() string {
 func (*BirthRecord) ProtoMessage() {}
 
 func (x *BirthRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[15]
+	mi := &file_ziwei_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1398,7 +1484,7 @@ func (x *BirthRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BirthRecord.ProtoReflect.Descriptor instead.
 func (*BirthRecord) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{15}
+	return file_ziwei_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *BirthRecord) GetId() string {
@@ -1493,7 +1579,7 @@ type ListRecordsRequest struct {
 
 func (x *ListRecordsRequest) Reset() {
 	*x = ListRecordsRequest{}
-	mi := &file_ziwei_proto_msgTypes[16]
+	mi := &file_ziwei_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1505,7 +1591,7 @@ func (x *ListRecordsRequest) String() string {
 func (*ListRecordsRequest) ProtoMessage() {}
 
 func (x *ListRecordsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[16]
+	mi := &file_ziwei_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1518,7 +1604,7 @@ func (x *ListRecordsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecordsRequest.ProtoReflect.Descriptor instead.
 func (*ListRecordsRequest) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{16}
+	return file_ziwei_proto_rawDescGZIP(), []int{17}
 }
 
 type ListRecordsResponse struct {
@@ -1530,7 +1616,7 @@ type ListRecordsResponse struct {
 
 func (x *ListRecordsResponse) Reset() {
 	*x = ListRecordsResponse{}
-	mi := &file_ziwei_proto_msgTypes[17]
+	mi := &file_ziwei_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1542,7 +1628,7 @@ func (x *ListRecordsResponse) String() string {
 func (*ListRecordsResponse) ProtoMessage() {}
 
 func (x *ListRecordsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[17]
+	mi := &file_ziwei_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +1641,7 @@ func (x *ListRecordsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRecordsResponse.ProtoReflect.Descriptor instead.
 func (*ListRecordsResponse) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{17}
+	return file_ziwei_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListRecordsResponse) GetRecords() []*BirthRecord {
@@ -1583,7 +1669,7 @@ type CreateRecordRequest struct {
 
 func (x *CreateRecordRequest) Reset() {
 	*x = CreateRecordRequest{}
-	mi := &file_ziwei_proto_msgTypes[18]
+	mi := &file_ziwei_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1595,7 +1681,7 @@ func (x *CreateRecordRequest) String() string {
 func (*CreateRecordRequest) ProtoMessage() {}
 
 func (x *CreateRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[18]
+	mi := &file_ziwei_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1608,7 +1694,7 @@ func (x *CreateRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRecordRequest.ProtoReflect.Descriptor instead.
 func (*CreateRecordRequest) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{18}
+	return file_ziwei_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *CreateRecordRequest) GetName() string {
@@ -1690,7 +1776,7 @@ type CreateRecordResponse struct {
 
 func (x *CreateRecordResponse) Reset() {
 	*x = CreateRecordResponse{}
-	mi := &file_ziwei_proto_msgTypes[19]
+	mi := &file_ziwei_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1702,7 +1788,7 @@ func (x *CreateRecordResponse) String() string {
 func (*CreateRecordResponse) ProtoMessage() {}
 
 func (x *CreateRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[19]
+	mi := &file_ziwei_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1715,7 +1801,7 @@ func (x *CreateRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRecordResponse.ProtoReflect.Descriptor instead.
 func (*CreateRecordResponse) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{19}
+	return file_ziwei_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *CreateRecordResponse) GetRecord() *BirthRecord {
@@ -1734,7 +1820,7 @@ type DeleteRecordRequest struct {
 
 func (x *DeleteRecordRequest) Reset() {
 	*x = DeleteRecordRequest{}
-	mi := &file_ziwei_proto_msgTypes[20]
+	mi := &file_ziwei_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1746,7 +1832,7 @@ func (x *DeleteRecordRequest) String() string {
 func (*DeleteRecordRequest) ProtoMessage() {}
 
 func (x *DeleteRecordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[20]
+	mi := &file_ziwei_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1759,7 +1845,7 @@ func (x *DeleteRecordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRecordRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRecordRequest) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{20}
+	return file_ziwei_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DeleteRecordRequest) GetId() string {
@@ -1778,7 +1864,7 @@ type DeleteRecordResponse struct {
 
 func (x *DeleteRecordResponse) Reset() {
 	*x = DeleteRecordResponse{}
-	mi := &file_ziwei_proto_msgTypes[21]
+	mi := &file_ziwei_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1790,7 +1876,7 @@ func (x *DeleteRecordResponse) String() string {
 func (*DeleteRecordResponse) ProtoMessage() {}
 
 func (x *DeleteRecordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[21]
+	mi := &file_ziwei_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1803,7 +1889,7 @@ func (x *DeleteRecordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRecordResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRecordResponse) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{21}
+	return file_ziwei_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DeleteRecordResponse) GetSuccess() bool {
@@ -1824,7 +1910,7 @@ type Tag struct {
 
 func (x *Tag) Reset() {
 	*x = Tag{}
-	mi := &file_ziwei_proto_msgTypes[22]
+	mi := &file_ziwei_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1836,7 +1922,7 @@ func (x *Tag) String() string {
 func (*Tag) ProtoMessage() {}
 
 func (x *Tag) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[22]
+	mi := &file_ziwei_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1849,7 +1935,7 @@ func (x *Tag) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tag.ProtoReflect.Descriptor instead.
 func (*Tag) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{22}
+	return file_ziwei_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *Tag) GetId() string {
@@ -1881,7 +1967,7 @@ type ListTagsRequest struct {
 
 func (x *ListTagsRequest) Reset() {
 	*x = ListTagsRequest{}
-	mi := &file_ziwei_proto_msgTypes[23]
+	mi := &file_ziwei_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1893,7 +1979,7 @@ func (x *ListTagsRequest) String() string {
 func (*ListTagsRequest) ProtoMessage() {}
 
 func (x *ListTagsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[23]
+	mi := &file_ziwei_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1906,7 +1992,7 @@ func (x *ListTagsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTagsRequest.ProtoReflect.Descriptor instead.
 func (*ListTagsRequest) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{23}
+	return file_ziwei_proto_rawDescGZIP(), []int{24}
 }
 
 type ListTagsResponse struct {
@@ -1918,7 +2004,7 @@ type ListTagsResponse struct {
 
 func (x *ListTagsResponse) Reset() {
 	*x = ListTagsResponse{}
-	mi := &file_ziwei_proto_msgTypes[24]
+	mi := &file_ziwei_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1930,7 +2016,7 @@ func (x *ListTagsResponse) String() string {
 func (*ListTagsResponse) ProtoMessage() {}
 
 func (x *ListTagsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ziwei_proto_msgTypes[24]
+	mi := &file_ziwei_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1943,7 +2029,7 @@ func (x *ListTagsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTagsResponse.ProtoReflect.Descriptor instead.
 func (*ListTagsResponse) Descriptor() ([]byte, []int) {
-	return file_ziwei_proto_rawDescGZIP(), []int{24}
+	return file_ziwei_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListTagsResponse) GetTags() []*Tag {
@@ -1966,7 +2052,7 @@ const file_ziwei_proto_rawDesc = "" +
 	"\x06gender\x18\x05 \x01(\tR\x06gender\x12\x19\n" +
 	"\bis_lunar\x18\x06 \x01(\bR\aisLunar\x12\x17\n" +
 	"\ais_leap\x18\a \x01(\bR\x06isLeap\x12\x15\n" +
-	"\x06is_dst\x18\b \x01(\bR\x05isDst\"\x94\x06\n" +
+	"\x06is_dst\x18\b \x01(\bR\x05isDst\"\x8c\r\n" +
 	"\x11CalculateResponse\x12\x16\n" +
 	"\x06gender\x18\x01 \x01(\tR\x06gender\x12\x16\n" +
 	"\x06wuxing\x18\x02 \x01(\tR\x06wuxing\x12\x15\n" +
@@ -1983,13 +2069,29 @@ const file_ziwei_proto_rawDesc = "" +
 	" \x03(\v2\x15.ziwei.v1.PatternDataR\bpatterns\x12D\n" +
 	"\x0einterpretation\x18\v \x01(\v2\x1c.ziwei.v1.InterpretationDataR\x0einterpretation\x12*\n" +
 	"\x06da_yun\x18\f \x03(\v2\x13.ziwei.v1.DaYunDataR\x05daYun\x127\n" +
-	"\bliu_nian\x18\r \x01(\v2\x1c.ziwei.v1.TemporalPalaceDataR\aliuNian\x125\n" +
-	"\aliu_yue\x18\x0e \x01(\v2\x1c.ziwei.v1.TemporalPalaceDataR\x06liuYue\x123\n" +
-	"\x06liu_ri\x18\x0f \x01(\v2\x1c.ziwei.v1.TemporalPalaceDataR\x05liuRi\x129\n" +
-	"\x0ecurrent_da_yun\x18\x10 \x01(\v2\x13.ziwei.v1.DaYunDataR\fcurrentDaYun\x1aP\n" +
+	"\bliu_nian\x18\r \x03(\v2\x1c.ziwei.v1.TemporalPalaceDataR\aliuNian\x125\n" +
+	"\aliu_yue\x18\x0e \x03(\v2\x1c.ziwei.v1.TemporalPalaceDataR\x06liuYue\x123\n" +
+	"\x06liu_ri\x18\x0f \x03(\v2\x1c.ziwei.v1.TemporalPalaceDataR\x05liuRi\x129\n" +
+	"\x0ecurrent_da_yun\x18\x10 \x01(\v2\x13.ziwei.v1.DaYunDataR\fcurrentDaYun\x12o\n" +
+	"\x18da_yun_palace_transforms\x18\x11 \x03(\v26.ziwei.v1.CalculateResponse.DaYunPalaceTransformsEntryR\x15daYunPalaceTransforms\x12u\n" +
+	"\x1aliu_nian_palace_transforms\x18\x12 \x03(\v28.ziwei.v1.CalculateResponse.LiuNianPalaceTransformsEntryR\x17liuNianPalaceTransforms\x12r\n" +
+	"\x19liu_yue_palace_transforms\x18\x13 \x03(\v27.ziwei.v1.CalculateResponse.LiuYuePalaceTransformsEntryR\x16liuYuePalaceTransforms\x12o\n" +
+	"\x18liu_ri_palace_transforms\x18\x14 \x03(\v26.ziwei.v1.CalculateResponse.LiuRiPalaceTransformsEntryR\x15liuRiPalaceTransforms\x1aP\n" +
 	"\fPalacesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
-	"\x05value\x18\x02 \x01(\v2\x14.ziwei.v1.PalaceDataR\x05value:\x028\x01\"\xf4\x05\n" +
+	"\x05value\x18\x02 \x01(\v2\x14.ziwei.v1.PalaceDataR\x05value:\x028\x01\x1ah\n" +
+	"\x1aDaYunPalaceTransformsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\x1aj\n" +
+	"\x1cLiuNianPalaceTransformsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\x1ai\n" +
+	"\x1bLiuYuePalaceTransformsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\x1ah\n" +
+	"\x1aLiuRiPalaceTransformsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.ziwei.v1.PalaceTransformGroupR\x05value:\x028\x01\"\xf4\x05\n" +
 	"\n" +
 	"PalaceData\x12\x16\n" +
 	"\x06branch\x18\x01 \x01(\tR\x06branch\x12\x1d\n" +
@@ -2029,14 +2131,21 @@ const file_ziwei_proto_rawDesc = "" +
 	"\x06palace\x18\x03 \x01(\tR\x06palace\x12\x12\n" +
 	"\x04stem\x18\x04 \x01(\tR\x04stem\x12\x1f\n" +
 	"\vtime_branch\x18\x05 \x01(\tR\n" +
-	"timeBranch\"\x9b\x01\n" +
+	"timeBranch\"O\n" +
+	"\x14PalaceTransformGroup\x127\n" +
+	"\n" +
+	"transforms\x18\x01 \x03(\v2\x17.ziwei.v1.TransformDataR\n" +
+	"transforms\"\xd4\x01\n" +
 	"\tDaYunData\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x1b\n" +
 	"\tstart_age\x18\x02 \x01(\x05R\bstartAge\x12\x17\n" +
 	"\aend_age\x18\x03 \x01(\x05R\x06endAge\x12\x12\n" +
 	"\x04stem\x18\x04 \x01(\tR\x04stem\x12\x16\n" +
 	"\x06branch\x18\x05 \x01(\tR\x06branch\x12\x16\n" +
-	"\x06palace\x18\x06 \x01(\tR\x06palace\"Y\n" +
+	"\x06palace\x18\x06 \x01(\tR\x06palace\x127\n" +
+	"\n" +
+	"transforms\x18\a \x03(\v2\x17.ziwei.v1.TransformDataR\n" +
+	"transforms\"Y\n" +
 	"\vPatternData\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x14\n" +
@@ -2153,7 +2262,7 @@ func file_ziwei_proto_rawDescGZIP() []byte {
 	return file_ziwei_proto_rawDescData
 }
 
-var file_ziwei_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_ziwei_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_ziwei_proto_goTypes = []any{
 	(*CalculateRequest)(nil),     // 0: ziwei.v1.CalculateRequest
 	(*CalculateResponse)(nil),    // 1: ziwei.v1.CalculateResponse
@@ -2161,67 +2270,82 @@ var file_ziwei_proto_goTypes = []any{
 	(*PalaceStar)(nil),           // 3: ziwei.v1.PalaceStar
 	(*TransformData)(nil),        // 4: ziwei.v1.TransformData
 	(*TemporalPalaceData)(nil),   // 5: ziwei.v1.TemporalPalaceData
-	(*DaYunData)(nil),            // 6: ziwei.v1.DaYunData
-	(*PatternData)(nil),          // 7: ziwei.v1.PatternData
-	(*InterpretationData)(nil),   // 8: ziwei.v1.InterpretationData
-	(*DeepStarAnalysis)(nil),     // 9: ziwei.v1.DeepStarAnalysis
-	(*FlyHuaAnalysis)(nil),       // 10: ziwei.v1.FlyHuaAnalysis
-	(*FlyStage)(nil),             // 11: ziwei.v1.FlyStage
-	(*ResonancePoint)(nil),       // 12: ziwei.v1.ResonancePoint
-	(*KarmicStep)(nil),           // 13: ziwei.v1.KarmicStep
-	(*SanFangRole)(nil),          // 14: ziwei.v1.SanFangRole
-	(*BirthRecord)(nil),          // 15: ziwei.v1.BirthRecord
-	(*ListRecordsRequest)(nil),   // 16: ziwei.v1.ListRecordsRequest
-	(*ListRecordsResponse)(nil),  // 17: ziwei.v1.ListRecordsResponse
-	(*CreateRecordRequest)(nil),  // 18: ziwei.v1.CreateRecordRequest
-	(*CreateRecordResponse)(nil), // 19: ziwei.v1.CreateRecordResponse
-	(*DeleteRecordRequest)(nil),  // 20: ziwei.v1.DeleteRecordRequest
-	(*DeleteRecordResponse)(nil), // 21: ziwei.v1.DeleteRecordResponse
-	(*Tag)(nil),                  // 22: ziwei.v1.Tag
-	(*ListTagsRequest)(nil),      // 23: ziwei.v1.ListTagsRequest
-	(*ListTagsResponse)(nil),     // 24: ziwei.v1.ListTagsResponse
-	nil,                          // 25: ziwei.v1.CalculateResponse.PalacesEntry
+	(*PalaceTransformGroup)(nil), // 6: ziwei.v1.PalaceTransformGroup
+	(*DaYunData)(nil),            // 7: ziwei.v1.DaYunData
+	(*PatternData)(nil),          // 8: ziwei.v1.PatternData
+	(*InterpretationData)(nil),   // 9: ziwei.v1.InterpretationData
+	(*DeepStarAnalysis)(nil),     // 10: ziwei.v1.DeepStarAnalysis
+	(*FlyHuaAnalysis)(nil),       // 11: ziwei.v1.FlyHuaAnalysis
+	(*FlyStage)(nil),             // 12: ziwei.v1.FlyStage
+	(*ResonancePoint)(nil),       // 13: ziwei.v1.ResonancePoint
+	(*KarmicStep)(nil),           // 14: ziwei.v1.KarmicStep
+	(*SanFangRole)(nil),          // 15: ziwei.v1.SanFangRole
+	(*BirthRecord)(nil),          // 16: ziwei.v1.BirthRecord
+	(*ListRecordsRequest)(nil),   // 17: ziwei.v1.ListRecordsRequest
+	(*ListRecordsResponse)(nil),  // 18: ziwei.v1.ListRecordsResponse
+	(*CreateRecordRequest)(nil),  // 19: ziwei.v1.CreateRecordRequest
+	(*CreateRecordResponse)(nil), // 20: ziwei.v1.CreateRecordResponse
+	(*DeleteRecordRequest)(nil),  // 21: ziwei.v1.DeleteRecordRequest
+	(*DeleteRecordResponse)(nil), // 22: ziwei.v1.DeleteRecordResponse
+	(*Tag)(nil),                  // 23: ziwei.v1.Tag
+	(*ListTagsRequest)(nil),      // 24: ziwei.v1.ListTagsRequest
+	(*ListTagsResponse)(nil),     // 25: ziwei.v1.ListTagsResponse
+	nil,                          // 26: ziwei.v1.CalculateResponse.PalacesEntry
+	nil,                          // 27: ziwei.v1.CalculateResponse.DaYunPalaceTransformsEntry
+	nil,                          // 28: ziwei.v1.CalculateResponse.LiuNianPalaceTransformsEntry
+	nil,                          // 29: ziwei.v1.CalculateResponse.LiuYuePalaceTransformsEntry
+	nil,                          // 30: ziwei.v1.CalculateResponse.LiuRiPalaceTransformsEntry
 }
 var file_ziwei_proto_depIdxs = []int32{
-	25, // 0: ziwei.v1.CalculateResponse.palaces:type_name -> ziwei.v1.CalculateResponse.PalacesEntry
-	7,  // 1: ziwei.v1.CalculateResponse.patterns:type_name -> ziwei.v1.PatternData
-	8,  // 2: ziwei.v1.CalculateResponse.interpretation:type_name -> ziwei.v1.InterpretationData
-	6,  // 3: ziwei.v1.CalculateResponse.da_yun:type_name -> ziwei.v1.DaYunData
+	26, // 0: ziwei.v1.CalculateResponse.palaces:type_name -> ziwei.v1.CalculateResponse.PalacesEntry
+	8,  // 1: ziwei.v1.CalculateResponse.patterns:type_name -> ziwei.v1.PatternData
+	9,  // 2: ziwei.v1.CalculateResponse.interpretation:type_name -> ziwei.v1.InterpretationData
+	7,  // 3: ziwei.v1.CalculateResponse.da_yun:type_name -> ziwei.v1.DaYunData
 	5,  // 4: ziwei.v1.CalculateResponse.liu_nian:type_name -> ziwei.v1.TemporalPalaceData
 	5,  // 5: ziwei.v1.CalculateResponse.liu_yue:type_name -> ziwei.v1.TemporalPalaceData
 	5,  // 6: ziwei.v1.CalculateResponse.liu_ri:type_name -> ziwei.v1.TemporalPalaceData
-	6,  // 7: ziwei.v1.CalculateResponse.current_da_yun:type_name -> ziwei.v1.DaYunData
-	3,  // 8: ziwei.v1.PalaceData.star_details:type_name -> ziwei.v1.PalaceStar
-	4,  // 9: ziwei.v1.PalaceData.natal_transforms:type_name -> ziwei.v1.TransformData
-	4,  // 10: ziwei.v1.PalaceData.liu_nian_transforms:type_name -> ziwei.v1.TransformData
-	4,  // 11: ziwei.v1.PalaceData.liu_yue_transforms:type_name -> ziwei.v1.TransformData
-	4,  // 12: ziwei.v1.PalaceData.liu_ri_transforms:type_name -> ziwei.v1.TransformData
-	10, // 13: ziwei.v1.PalaceData.fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
-	13, // 14: ziwei.v1.InterpretationData.karmic_narrative:type_name -> ziwei.v1.KarmicStep
-	14, // 15: ziwei.v1.InterpretationData.san_fang_diagnosis:type_name -> ziwei.v1.SanFangRole
-	9,  // 16: ziwei.v1.InterpretationData.star_details:type_name -> ziwei.v1.DeepStarAnalysis
-	10, // 17: ziwei.v1.InterpretationData.origin_fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
-	12, // 18: ziwei.v1.InterpretationData.temporal_resonance:type_name -> ziwei.v1.ResonancePoint
-	11, // 19: ziwei.v1.FlyHuaAnalysis.stages:type_name -> ziwei.v1.FlyStage
-	15, // 20: ziwei.v1.ListRecordsResponse.records:type_name -> ziwei.v1.BirthRecord
-	15, // 21: ziwei.v1.CreateRecordResponse.record:type_name -> ziwei.v1.BirthRecord
-	22, // 22: ziwei.v1.ListTagsResponse.tags:type_name -> ziwei.v1.Tag
-	2,  // 23: ziwei.v1.CalculateResponse.PalacesEntry.value:type_name -> ziwei.v1.PalaceData
-	0,  // 24: ziwei.v1.ZiweiService.Calculate:input_type -> ziwei.v1.CalculateRequest
-	16, // 25: ziwei.v1.ZiweiService.ListRecords:input_type -> ziwei.v1.ListRecordsRequest
-	18, // 26: ziwei.v1.ZiweiService.CreateRecord:input_type -> ziwei.v1.CreateRecordRequest
-	20, // 27: ziwei.v1.ZiweiService.DeleteRecord:input_type -> ziwei.v1.DeleteRecordRequest
-	23, // 28: ziwei.v1.ZiweiService.ListTags:input_type -> ziwei.v1.ListTagsRequest
-	1,  // 29: ziwei.v1.ZiweiService.Calculate:output_type -> ziwei.v1.CalculateResponse
-	17, // 30: ziwei.v1.ZiweiService.ListRecords:output_type -> ziwei.v1.ListRecordsResponse
-	19, // 31: ziwei.v1.ZiweiService.CreateRecord:output_type -> ziwei.v1.CreateRecordResponse
-	21, // 32: ziwei.v1.ZiweiService.DeleteRecord:output_type -> ziwei.v1.DeleteRecordResponse
-	24, // 33: ziwei.v1.ZiweiService.ListTags:output_type -> ziwei.v1.ListTagsResponse
-	29, // [29:34] is the sub-list for method output_type
-	24, // [24:29] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	7,  // 7: ziwei.v1.CalculateResponse.current_da_yun:type_name -> ziwei.v1.DaYunData
+	27, // 8: ziwei.v1.CalculateResponse.da_yun_palace_transforms:type_name -> ziwei.v1.CalculateResponse.DaYunPalaceTransformsEntry
+	28, // 9: ziwei.v1.CalculateResponse.liu_nian_palace_transforms:type_name -> ziwei.v1.CalculateResponse.LiuNianPalaceTransformsEntry
+	29, // 10: ziwei.v1.CalculateResponse.liu_yue_palace_transforms:type_name -> ziwei.v1.CalculateResponse.LiuYuePalaceTransformsEntry
+	30, // 11: ziwei.v1.CalculateResponse.liu_ri_palace_transforms:type_name -> ziwei.v1.CalculateResponse.LiuRiPalaceTransformsEntry
+	3,  // 12: ziwei.v1.PalaceData.star_details:type_name -> ziwei.v1.PalaceStar
+	4,  // 13: ziwei.v1.PalaceData.natal_transforms:type_name -> ziwei.v1.TransformData
+	4,  // 14: ziwei.v1.PalaceData.liu_nian_transforms:type_name -> ziwei.v1.TransformData
+	4,  // 15: ziwei.v1.PalaceData.liu_yue_transforms:type_name -> ziwei.v1.TransformData
+	4,  // 16: ziwei.v1.PalaceData.liu_ri_transforms:type_name -> ziwei.v1.TransformData
+	11, // 17: ziwei.v1.PalaceData.fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
+	4,  // 18: ziwei.v1.PalaceTransformGroup.transforms:type_name -> ziwei.v1.TransformData
+	4,  // 19: ziwei.v1.DaYunData.transforms:type_name -> ziwei.v1.TransformData
+	14, // 20: ziwei.v1.InterpretationData.karmic_narrative:type_name -> ziwei.v1.KarmicStep
+	15, // 21: ziwei.v1.InterpretationData.san_fang_diagnosis:type_name -> ziwei.v1.SanFangRole
+	10, // 22: ziwei.v1.InterpretationData.star_details:type_name -> ziwei.v1.DeepStarAnalysis
+	11, // 23: ziwei.v1.InterpretationData.origin_fly_hua:type_name -> ziwei.v1.FlyHuaAnalysis
+	13, // 24: ziwei.v1.InterpretationData.temporal_resonance:type_name -> ziwei.v1.ResonancePoint
+	12, // 25: ziwei.v1.FlyHuaAnalysis.stages:type_name -> ziwei.v1.FlyStage
+	16, // 26: ziwei.v1.ListRecordsResponse.records:type_name -> ziwei.v1.BirthRecord
+	16, // 27: ziwei.v1.CreateRecordResponse.record:type_name -> ziwei.v1.BirthRecord
+	23, // 28: ziwei.v1.ListTagsResponse.tags:type_name -> ziwei.v1.Tag
+	2,  // 29: ziwei.v1.CalculateResponse.PalacesEntry.value:type_name -> ziwei.v1.PalaceData
+	6,  // 30: ziwei.v1.CalculateResponse.DaYunPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	6,  // 31: ziwei.v1.CalculateResponse.LiuNianPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	6,  // 32: ziwei.v1.CalculateResponse.LiuYuePalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	6,  // 33: ziwei.v1.CalculateResponse.LiuRiPalaceTransformsEntry.value:type_name -> ziwei.v1.PalaceTransformGroup
+	0,  // 34: ziwei.v1.ZiweiService.Calculate:input_type -> ziwei.v1.CalculateRequest
+	17, // 35: ziwei.v1.ZiweiService.ListRecords:input_type -> ziwei.v1.ListRecordsRequest
+	19, // 36: ziwei.v1.ZiweiService.CreateRecord:input_type -> ziwei.v1.CreateRecordRequest
+	21, // 37: ziwei.v1.ZiweiService.DeleteRecord:input_type -> ziwei.v1.DeleteRecordRequest
+	24, // 38: ziwei.v1.ZiweiService.ListTags:input_type -> ziwei.v1.ListTagsRequest
+	1,  // 39: ziwei.v1.ZiweiService.Calculate:output_type -> ziwei.v1.CalculateResponse
+	18, // 40: ziwei.v1.ZiweiService.ListRecords:output_type -> ziwei.v1.ListRecordsResponse
+	20, // 41: ziwei.v1.ZiweiService.CreateRecord:output_type -> ziwei.v1.CreateRecordResponse
+	22, // 42: ziwei.v1.ZiweiService.DeleteRecord:output_type -> ziwei.v1.DeleteRecordResponse
+	25, // 43: ziwei.v1.ZiweiService.ListTags:output_type -> ziwei.v1.ListTagsResponse
+	39, // [39:44] is the sub-list for method output_type
+	34, // [34:39] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_ziwei_proto_init() }
@@ -2235,7 +2359,7 @@ func file_ziwei_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ziwei_proto_rawDesc), len(file_ziwei_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

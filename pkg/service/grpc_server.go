@@ -199,27 +199,27 @@ func chartToProto(chart *engine.ZiweiChart, gender string) *pb.CalculateResponse
 		})
 	}
 
-	resp.LiuNian = &pb.TemporalPalaceData{
+	resp.LiuNian = []*pb.TemporalPalaceData{{
 		Label:      "流年",
 		Branch:     chart.LiuNian.Branch.String(),
 		Palace:     chart.Palaces[chart.LiuNian.Branch].String(),
 		Stem:       chart.LiuNian.Stem.String(),
 		TimeBranch: chart.LiuNian.Branch.String(),
-	}
-	resp.LiuYue = &pb.TemporalPalaceData{
+	}}
+	resp.LiuYue = []*pb.TemporalPalaceData{{
 		Label:      "流月",
 		Branch:     chart.LiuYue.String(),
 		Palace:     chart.Palaces[chart.LiuYue].String(),
 		Stem:       chart.MonthPillar.Stem.String(),
 		TimeBranch: chart.MonthPillar.Branch.String(),
-	}
-	resp.LiuRi = &pb.TemporalPalaceData{
+	}}
+	resp.LiuRi = []*pb.TemporalPalaceData{{
 		Label:      "流日",
 		Branch:     chart.LiuRi.String(),
 		Palace:     chart.Palaces[chart.LiuRi].String(),
 		Stem:       chart.DayPillar.Stem.String(),
 		TimeBranch: chart.DayPillar.Branch.String(),
-	}
+	}}
 
 	// 解讀
 	interp := &pb.InterpretationData{
