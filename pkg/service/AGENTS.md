@@ -1,5 +1,7 @@
 # pkg/service/ - 服務層
 
+**Generated:** 2026-03-24
+
 ## 概述
 
 Service package 提供統一的計算接口和 gRPC 服務實現，作為 engine 與外部協議之間的適配層。

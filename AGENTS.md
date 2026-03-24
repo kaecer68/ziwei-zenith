@@ -1,5 +1,17 @@
 # AGENTS.md - Ziwei Zenith Development Guide
 
+**Generated:** 2026-03-24
+**Commit:** 38fdaf8
+**Branch:** main
+
+---
+
+## 概述
+
+紫微斗數排盤引擎，Go 語言實現，支援 REST API 與 gRPC 雙協定。
+
+**核心技術**: Go 1.25+ | React 19 + TypeScript 5 | gRPC + Protobuf
+
 ---
 
 ## 用戶溝通語言設定

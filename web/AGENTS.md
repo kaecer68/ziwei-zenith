@@ -1,5 +1,7 @@
 # web/ - React 前端
 
+**Generated:** 2026-03-24
+
 ## 概述
 
 Web frontend 使用 React 19 + TypeScript 5 + Vite 8，提供紫微排盤的互動界面。
