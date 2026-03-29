@@ -54,9 +54,9 @@ make dev-all
 
 ## 後端依賴
 
-前端透過 `vite.config.ts` 的 proxy 設定串接本機後端。Proxy 目標 port 從 `../.env.ports` 讀取 `REST_PORT` 欄位，因此**必須先執行 `make sync-contracts`** 確保該檔案存在。
+前端透過 `vite.config.ts` 的 proxy 設定串接本機後端。Proxy 目標從 `../.env.ports` 讀取 `VITE_API_TARGET`，因此**必須先執行 `make sync-contracts`** 確保該檔案存在。
 
-> **Port 來源**：`.env.ports` 由 `scripts/sync-contracts.sh` 根據 `contracts/runtime/ports.env` 生成，預設為 8083。若契約變更 port，前端 proxy 會自動同步。
+> **Port 來源**：`.env.ports` 由 `scripts/sync-contracts.sh` 根據 `contracts/runtime/ports.env` 生成。若契約變更 port，前端 proxy 與 health 檢查目標會自動同步。
 
 主要 API：
 - `POST /api/v1/calculate`

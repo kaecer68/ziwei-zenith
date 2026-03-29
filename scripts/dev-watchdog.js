@@ -9,6 +9,7 @@
  */
 
 const { spawn } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 
 // 配置
@@ -20,6 +21,30 @@ let viteProcess = null;
 let restartTimer = null;
 let healthCheckTimer = null;
 let startTime = Date.now();
+
+function resolveRuntimeEnvFile() {
+  const envPortsFile = process.env.ENV_PORTS_FILE;
+  if (envPortsFile) {
+    return path.resolve(envPortsFile);
+  }
+
+  const portsFile = path.resolve(__dirname, '../.env.ports');
+  if (!fs.existsSync(portsFile)) {
+    throw new Error('.env.ports not found. Please run: make sync-contracts');
+  }
+  return portsFile;
+}
+
+function mustRuntimeValue(key) {
+  const content = fs.readFileSync(resolveRuntimeEnvFile(), 'utf-8');
+  const match = content.match(new RegExp(`^${key}=(.+)$`, 'm'));
+  if (!match) {
+    throw new Error(`${key} not found in .env.ports`);
+  }
+  return match[1].trim();
+}
+
+const healthURL = mustRuntimeValue('HEALTH_URL');
 
 function log(message) {
   const timestamp = new Date().toLocaleString('zh-TW');
@@ -41,7 +66,7 @@ function getMemoryUsageMB() {
 
 async function checkHealth() {
   try {
-    const response = await fetch('http://localhost:5174/api/v1/health');
+    const response = await fetch(healthURL);
     if (!response.ok) {
       log('⚠️ 健康檢查失敗，準備重啟...');
       restartVite();
@@ -159,6 +184,7 @@ log('🔧 Vite Dev Watchdog 啟動');
 log(`   - 定時重啟間隔: ${Math.floor(RESTART_INTERVAL_MS / 3600000)} 小時`);
 log(`   - 健康檢查間隔: ${HEALTH_CHECK_INTERVAL_MS / 1000} 秒`);
 log(`   - 記憶體上限: ${MAX_MEMORY_MB} MB`);
+log(`   - 後端健康檢查: ${healthURL}`);
 log('');
 
 startVite();

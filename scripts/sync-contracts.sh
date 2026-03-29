@@ -54,9 +54,17 @@ render_target_file() {
 
 ZIWEI_GRPC_PORT=$grpc_port
 ZIWEI_REST_PORT=$rest_port
+ZIWEI_GRPC_ADDR=127.0.0.1:$grpc_port
+ZIWEI_REST_BASE_URL=http://127.0.0.1:$rest_port
+ZIWEI_HEALTH_URL=http://127.0.0.1:$rest_port/api/v1/health
 
 GRPC_PORT=$grpc_port
 REST_PORT=$rest_port
+GRPC_ADDR=127.0.0.1:$grpc_port
+REST_BASE_URL=http://127.0.0.1:$rest_port
+HEALTH_PATH=/api/v1/health
+HEALTH_URL=http://127.0.0.1:$rest_port/api/v1/health
+VITE_API_TARGET=http://127.0.0.1:$rest_port
 EOF
 }
 

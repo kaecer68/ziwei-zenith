@@ -8,6 +8,7 @@ module.exports = {
       cwd: '.',
       env: {
         NODE_ENV: 'development',
+        ENV_PORTS_FILE: './.env.ports',
       },
       instances: 1,
       autorestart: true,
@@ -37,6 +38,7 @@ module.exports = {
       env: {
         NODE_ENV: 'development',
         FORCE_COLOR: '1',
+        ENV_PORTS_FILE: '../.env.ports',
       },
       cron_restart: '0 */2 * * *',
     },
@@ -54,6 +56,7 @@ module.exports = {
       merge_logs: true,
       env: {
         NODE_ENV: 'development',
+        ENV_PORTS_FILE: './.env.ports',
       },
     },
   ],

@@ -107,7 +107,7 @@ ziwei-cli -year 1990 -month 6 -day 15 -hour 10 -lat 25.033 -lon 121.565
 
 > REST 路徑約定：目前以 `/api/v1/*` 為主要路徑；`/v1/ziwei/calculate` 僅保留為契約中的舊版兼容標記。
 >
-> REST Port 同步規則：優先使用環境變數 `REST_PORT`，未設置時會從 `contracts/openapi/ziwei-zenith.yaml` 的 `servers.url` 解析 port。
+> Runtime 載入規則：優先使用明確環境變數；未設置時僅可從 `scripts/sync-contracts.sh` 生成的 `.env.ports` 讀取。缺值時會 fail fast，不再從 OpenAPI 契約推導 runtime port。
 
 ```bash
 # 契約同步 + 啟動伺服器 (REST :8083 + gRPC :50053)
@@ -130,7 +130,7 @@ curl http://localhost:8083/api/v1/tags
 
 ### Web 前端開發
 
-前端位於 `web/` 目錄，使用 React + TypeScript + Vite。Vite 開發服務器運行於 `http://localhost:5174`，並透過 proxy 轉發 API 請求到後端 `localhost:8083`。
+前端位於 `web/` 目錄，使用 React + TypeScript + Vite。Vite proxy 目標由 `.env.ports` 內的 `VITE_API_TARGET` 提供，與契約同步的 REST port 保持一致。
 
 ```bash
 # 安裝前端依賴

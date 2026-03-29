@@ -3,13 +3,12 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -39,12 +38,11 @@ type CalculateRequest struct {
 }
 
 var (
-	records      []v1.BirthRecord
-	tags         []v1.Tag
-	mu           sync.RWMutex
-	recordsFile  = "records.json"
-	tagsFile     = "tags.json"
-	contractFile = "contracts/openapi/ziwei-zenith.yaml"
+	records     []v1.BirthRecord
+	tags        []v1.Tag
+	mu          sync.RWMutex
+	recordsFile = "records.json"
+	tagsFile    = "tags.json"
 )
 
 func main() {
@@ -56,15 +54,13 @@ func main() {
 	// ─── REST Server (contract-driven port) ───
 	http.HandleFunc("/api/v1/health", healthHandler)
 	http.HandleFunc("/api/v1/calculate", calculateHandler)
+	http.HandleFunc("/v1/ziwei/calculate", calculateHandler)
 	http.HandleFunc("/api/v1/calculate/temporal", temporalCalculateHandler)
 	http.HandleFunc("/api/v1/records", recordsHandler)
 	http.HandleFunc("/api/v1/records/", recordItemHandler)
 	http.HandleFunc("/api/v1/tags", tagsHandler)
 
-	port, err := resolveRESTPort()
-	if err != nil {
-		log.Fatalf("resolve REST port failed: %v", err)
-	}
+	port := mustRuntimeValue("REST_PORT")
 	grpcPort := getGRPCPort()
 	fmt.Printf("Ziwei Zenith REST API on :%s | gRPC on :%s\n", port, grpcPort)
 	if err := http.ListenAndServe(":"+port, corsMiddleware(http.DefaultServeMux)); err != nil {
@@ -72,84 +68,77 @@ func main() {
 	}
 }
 
-func resolveRESTPort() (string, error) {
-	if port := strings.TrimSpace(os.Getenv("REST_PORT")); port != "" {
-		return port, nil
-	}
-
-	port, err := restPortFromContract(contractFile)
-	if err != nil {
-		return "", fmt.Errorf("REST_PORT not set and contract lookup failed: %w", err)
-	}
-
-	return port, nil
+func getGRPCPort() string {
+	return mustRuntimeValue("GRPC_PORT")
 }
 
-func getGRPCPort() string {
-	// Priority: GRPC_PORT env > ZIWEI_GRPC_PORT env > .env.ports > fail
-	if port := strings.TrimSpace(os.Getenv("GRPC_PORT")); port != "" {
-		return port
+func mustRuntimeValue(key string) string {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+		return v
 	}
-	if port := strings.TrimSpace(os.Getenv("ZIWEI_GRPC_PORT")); port != "" {
-		return port
+
+	runtimeEnv := mustLoadRuntimeEnv()
+	if v := strings.TrimSpace(runtimeEnv[key]); v != "" {
+		return v
 	}
-	// Try to read from .env.ports if it exists
-	if data, err := os.ReadFile(".env.ports"); err == nil {
-		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "GRPC_PORT=") || strings.HasPrefix(line, "ZIWEI_GRPC_PORT=") {
-				if port := strings.TrimSpace(strings.SplitN(line, "=", 2)[1]); port != "" {
-					return port
-				}
+
+	panic("missing required runtime environment value: " + key)
+}
+
+func mustLoadRuntimeEnv() map[string]string {
+	if path := strings.TrimSpace(os.Getenv("ENV_PORTS_FILE")); path != "" {
+		env, err := loadEnvFile(path)
+		if err != nil {
+			panic(fmt.Sprintf("failed to load ENV_PORTS_FILE %s: %v", path, err))
+		}
+		return env
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		panic("failed to determine working directory for runtime env lookup")
+	}
+
+	for dir := wd; ; dir = filepath.Dir(dir) {
+		candidate := filepath.Join(dir, ".env.ports")
+		if _, statErr := os.Stat(candidate); statErr == nil {
+			env, loadErr := loadEnvFile(candidate)
+			if loadErr != nil {
+				panic(fmt.Sprintf("failed to load runtime env file %s: %v", candidate, loadErr))
 			}
+			return env
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
 		}
 	}
-	// No fallback - require explicit configuration
-	log.Fatal("GRPC_PORT or ZIWEI_GRPC_PORT must be set, or .env.ports must exist with GRPC_PORT defined")
-	return "" // unreachable
+
+	panic("missing runtime env file: run scripts/sync-contracts.sh or export ENV_PORTS_FILE")
 }
 
-func restPortFromContract(path string) (string, error) {
+func loadEnvFile(path string) (map[string]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer file.Close()
 
+	values := make(map[string]string)
 	scanner := bufio.NewScanner(file)
-	inServers := false
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		if line == "servers:" {
-			inServers = true
+		if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
 			continue
 		}
-		if !inServers {
-			continue
-		}
-		if strings.HasPrefix(line, "paths:") {
-			break
-		}
-		if !strings.HasPrefix(line, "- url:") {
-			continue
-		}
-
-		rawURL := strings.TrimSpace(strings.TrimPrefix(line, "- url:"))
-		rawURL = strings.Trim(rawURL, `"'`)
-		u, parseErr := url.Parse(rawURL)
-		if parseErr != nil {
-			return "", fmt.Errorf("invalid server url %q: %w", rawURL, parseErr)
-		}
-		if u.Port() == "" {
-			return "", fmt.Errorf("server url %q has no explicit port", rawURL)
-		}
-		return u.Port(), nil
+		parts := strings.SplitN(line, "=", 2)
+		values[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
 	}
-
 	if err := scanner.Err(); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return "", errors.New("no server url found under servers in contract")
+	return values, nil
 }
 
 func startGRPCServer() {

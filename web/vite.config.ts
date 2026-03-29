@@ -3,21 +3,29 @@ import path from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-function resolveRestPort(): string {
+function resolveRuntimeEnvFile(): string {
+  const envPortsFile = process.env.ENV_PORTS_FILE
+  if (envPortsFile) {
+    return path.resolve(envPortsFile)
+  }
+
   const portsFile = path.resolve(__dirname, '../.env.ports')
   if (!fs.existsSync(portsFile)) {
     throw new Error('.env.ports not found. Please run: make sync-contracts')
   }
-
-  const content = fs.readFileSync(portsFile, 'utf-8')
-  const match = content.match(/^REST_PORT=(\d+)$/m)
-  if (!match) {
-    throw new Error('REST_PORT not found in .env.ports')
-  }
-  return match[1]
+  return portsFile
 }
 
-const restPort = resolveRestPort()
+function mustRuntimeValue(key: string): string {
+  const content = fs.readFileSync(resolveRuntimeEnvFile(), 'utf-8')
+  const match = content.match(new RegExp(`^${key}=(.+)$`, 'm'))
+  if (!match) {
+    throw new Error(`${key} not found in .env.ports`)
+  }
+  return match[1].trim()
+}
+
+const apiTarget = mustRuntimeValue('VITE_API_TARGET')
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -26,7 +34,7 @@ export default defineConfig({
     port: 5174,
     proxy: {
       '/api': {
-        target: `http://localhost:${restPort}`,
+        target: apiTarget,
         changeOrigin: true,
       },
     },
