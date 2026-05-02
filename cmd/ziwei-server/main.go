@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kaecer68/lunar-zenith/pkg/celestial"
-	"github.com/kaecer68/lunar-zenith/pkg/zodiac"
+	"github.com/kaecer68/lunar-zenith/v4/pkg/celestial"
+	"github.com/kaecer68/lunar-zenith/v4/pkg/zodiac"
 	pb "github.com/kaecer68/ziwei-zenith/pkg/api/grpc/v1"
 	v1 "github.com/kaecer68/ziwei-zenith/pkg/api/v1"
 	"github.com/kaecer68/ziwei-zenith/pkg/basis"
@@ -52,6 +52,9 @@ func main() {
 	go startGRPCServer()
 
 	// ─── REST Server (contract-driven port) ───
+	// Standard health endpoint (new)
+	http.HandleFunc("/health", healthHandler)
+	// Legacy health endpoint (backward compatible)
 	http.HandleFunc("/api/v1/health", healthHandler)
 	http.HandleFunc("/api/v1/calculate", calculateHandler)
 	http.HandleFunc("/v1/ziwei/calculate", calculateHandler)
@@ -225,9 +228,12 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+var serviceVersion = "dev"
+
 func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
+	fmt.Fprintf(w, `{"status":"ok","service":"ziwei-zenith","version":"%s"}`, serviceVersion)
 }
 
 func calculateHandler(w http.ResponseWriter, r *http.Request) {
@@ -290,6 +296,9 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 
 		lYear = lunarDate.Year
 		lMonth = lunarDate.Month
+		if lunarDate.IsLeap {
+			lMonth = -lMonth
+		}
 		lDay = lunarDate.Day
 	}
 
@@ -430,6 +439,9 @@ func temporalCalculateHandler(w http.ResponseWriter, r *http.Request) {
 		lunarDate := lunarEngine.GetLunarDate(jd)
 		lYear = lunarDate.Year
 		lMonth = lunarDate.Month
+		if lunarDate.IsLeap {
+			lMonth = -lMonth
+		}
 		lDay = lunarDate.Day
 	}
 
@@ -508,7 +520,7 @@ func temporalCalculateHandler(w http.ResponseWriter, r *http.Request) {
 			testDate2 := time.Date(targetYear, time.Month(targetMonth), d, 12, 0, 0, 0, loc)
 			jd2 := celestial.TimeToJD(testDate2)
 			lunarDate2 := lunarEngine.GetLunarDate(jd2)
-			if lunarDate2.Month != testLunarDate.Month && lunarDate2.Month != -testLunarDate.Month {
+			if lunarDate2.Month != testLunarDate.Month || lunarDate2.IsLeap != testLunarDate.IsLeap {
 				lunarDaysInMonth = d - 1
 				break
 			}
@@ -889,6 +901,15 @@ func mapChartToResponse(chart *engine.ZiweiChart, gender string, birthYear int) 
 			},
 			TemporalResonance: resonance,
 			ClassicPatterns:   chart.Interpretation.ClassicPatterns,
+		},
+		SolarTerm: &v1.SolarTerm{
+			Index:           chart.SolarTerm.Index,
+			Name:            chart.SolarTerm.Name,
+			Longitude:       chart.SolarTerm.Longitude,
+			StartTime:       chart.SolarTerm.StartTime,
+			NextTermName:    chart.SolarTerm.NextTermName,
+			NextTermTime:    chart.SolarTerm.NextTermTime,
+			IsTransitionDay: chart.SolarTerm.IsTransitionDay,
 		},
 	}
 }
